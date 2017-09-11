@@ -76,7 +76,7 @@ async def run_container(job, app):
             'Cmd': create_commandline(job, run_conf),
             'Image': 'antismash/standalone-lite:4.0.2',
             'HostConfig': create_host_config(job, run_conf),
-            'User': '1000:1000',
+            'User': run_conf.uid_string,
         }
     )
     await container.start()
@@ -255,6 +255,7 @@ class RunConfig:
         'statusdir',
         'timeout',
         'workdir',
+        'uid_string',
     )
 
     def __init__(self,
@@ -266,7 +267,8 @@ class RunConfig:
                  pfam_dir,
                  statusdir,
                  timeout,
-                 workdir):
+                 workdir,
+                 uid_string):
         """Initialise a RunConfig"""
         self.clusterblast_dir = clusterblast_dir
         self.cpus = cpus
@@ -278,6 +280,7 @@ class RunConfig:
         self.statusdir = statusdir
         self.timeout = timeout
         self.workdir = workdir
+        self.uid_string = uid_string
 
     @classmethod
     def from_argarse(cls, args):
@@ -294,5 +297,6 @@ class RunConfig:
                    args.pfam_dir,
                    args.statusdir,
                    args.timeout,
-                   args.workdir)
+                   args.workdir,
+                   args.uid_string)
 
