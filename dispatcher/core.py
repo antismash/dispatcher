@@ -2,135 +2,27 @@
 from aiodocker.exceptions import DockerError
 import asyncio
 from datetime import datetime
+from enum import Enum
 import logging
 from aioredis import RedisError
 import os
 
 from .download import download
-from .log import core_logger
 from .models import Job
-from .signal import Signal
 
 
-class StandaloneApplication:
-    """A standalone async application to run"""
-
-    def __init__(self, *, logger=core_logger):
-        """Initialize the application to run
-
-        :param logger: The logger class to use
-        """
-        self.logger = logger
-
-        self._on_startup = Signal(self)
-        self._on_shutdown = Signal(self)
-        self._on_cleanup = Signal(self)
-
-        self._state = {}
-        self._loop = None
-        self.tasks = []
-
-    def __getitem__(self, key):
-        return self._state[key]
-
-    def __setitem__(self, key, value):
-        self._state[key] = value
-
-    @property
-    def on_startup(self):
-        return self._on_startup
-
-    @property
-    def on_shutdown(self):
-        return self._on_shutdown
-
-    @property
-    def on_cleanup(self):
-        return self._on_cleanup
-
-    async def startup(self):
-        """Trigger the startup callbacks"""
-        await self.on_startup.send(self)
-
-    async def shutdown(self):
-        """Trigger the shutdown callbacks
-
-        Call this before calling cleanup()
-        """
-        await self.on_shutdown.send(self)
-
-    async def cleanup(self):
-        """Trigger the cleanup callbacks
-
-        Calls this after calling shutdown()
-        """
-        await self.on_cleanup.send(self)
-
-    @property
-    def loop(self):
-        return self._loop
-
-    @loop.setter
-    def loop(self, loop):
-        if loop is None:
-            loop = asyncio.get_event_loop()
-
-        if self._loop is not None and self._loop is not loop:
-            raise RuntimeError("Can't override event loop after init")
-
-        self._loop = loop
-
-    def run(self, loop=None):
-        """Actually run the application
-
-        :param loop: Custom event loop or None for default
-        """
-        if loop is None:
-            loop = asyncio.get_event_loop()
-
-        self.loop = loop
-
-        loop.run_until_complete(self.startup())
-
-        for task in self.tasks:
-            loop.create_task(task(self))
-
-        try:
-            loop.run_forever()
-        except (KeyboardInterrupt, SystemError):
-            print("Attempting graceful shutdown, press Ctrl-C again to exit", flush=True)
-
-            def shutdown_exception_handler(_loop, context):
-                if "exception" not in context or not isinstance(context["exception"], asyncio.CancelledError):
-                    _loop.default_exception_handler(context)
-            loop.set_exception_handler(shutdown_exception_handler)
-
-            available_tasks = asyncio.Task.all_tasks(loop=loop)
-            tasks = asyncio.gather(*available_tasks, loop=loop, return_exceptions=True)
-            tasks.add_done_callback(lambda _: loop.stop())
-            tasks.cancel()
-
-            while not tasks.done() and not loop.is_closed():
-                loop.run_forever()
-        finally:
-            loop.run_until_complete(self.shutdown())
-            loop.run_until_complete(self.cleanup())
-            loop.close()
+class JobOutcome(Enum):
+    SUCCESS = 'success'
+    FAILURE = 'failure'
+    TIMEOUT = 'timeout'
 
 
 async def dispatch(app):
     """Run the dispatcher main process."""
-    containers = app['containers']
     db = app['engine']
     run_conf = app['run_conf']
     while True:
         try:
-            # TODO: Handle control interaction
-
-            if len(containers) > run_conf.max_jobs:
-                await asyncio.sleep(5)
-                continue
-
             uid = await db.brpoplpush('jobs:queued', '{}:queued'.format(run_conf.name), timeout=5)
             if uid is None:
                 await asyncio.sleep(5)
@@ -164,6 +56,7 @@ async def run_container(job, app):
     run_conf = app['run_conf']
     db = app['engine']
 
+    # TODO: put download jobs in a separate queue, handle them in a separate task?
     if job.download != '':
         await download(job, app)
 
@@ -187,14 +80,69 @@ async def run_container(job, app):
     )
     await container.start()
     app.logger.debug("Started %s", container._id[:8])
+    containers[container._id] = (container, job)
+
+    event = asyncio.Future(loop=app.loop)
+
+    task = asyncio.ensure_future(follow(container, job, event))
 
     def timeout_handler():
-        asyncio.ensure_future(cancel(app, container, job), loop=app.loop)
+        asyncio.ensure_future(cancel(container, event), loop=app.loop)
 
     timeout = app.loop.call_later(run_conf.timeout, timeout_handler)
-
     timeout_tasks[container._id] = timeout
-    containers[container._id] = (container, job)
+
+    res = await event
+    if res == JobOutcome.SUCCESS:
+        timeout.cancel()
+        job.state = 'done'
+        job.status = 'done'
+    elif res == JobOutcome.FAILURE:
+        timeout.cancel()
+        job.state = 'failed'
+        # TODO: Grab the error message
+        job.status = 'failed: INSERT ERROR MESSAGE'
+    else:
+        task.cancel()
+        job.state = 'failed'
+        job.status = 'failed: Runtime exceeded'
+
+    del timeout_tasks[container._id]
+
+    await job.commit()
+
+    await db.lrem('jobs:running', 1, job.job_id)
+    await db.lpush('jobs:complete', job.job_id)
+
+    app.logger.debug('Done with %s', container._id[:8])
+
+    await container.delete(force=True)
+    del containers[container._id]
+
+    app.logger.debug('Finished job %s', job)
+
+
+async def follow(container, job, event):
+    """Follow a container log
+
+    :param container: a DockerContainer to follow
+    :param job: the Job object running on the container
+    :param event: the Future the parent task uses to track this run
+    """
+    log = await container.log(stderr=True, stdout=True, follow=True)
+    async for line in log:
+        line = line.strip()
+
+        if line.startswith('INFO'):
+            job.status = 'running: {}'.format(line[25:])
+            await job.commit()
+
+        if line.endswith('SUCCESS'):
+            event.set_result(JobOutcome.SUCCESS)
+            return
+        elif line.endswith('FAILED'):
+            event.set_result(JobOutcome.FAILURE)
+            return
 
 
 def create_commandline(job, conf):
@@ -243,69 +191,17 @@ def create_host_config(job, conf):
     return host_config
 
 
-async def cleanup(app):
-    """Watch for container die events and clean up"""
-    subscriber = app['docker_subscriber']
-    containers = app['containers']
-    timeout_tasks = app['timeout_tasks']
-    db = app['engine']
-    while True:
-        event = await subscriber.get()
-        if event is None:
-            continue
-
-        if event['Action'] not in ('die', 'kill'):
-            continue
-
-        container_id = event['Actor']['ID']
-        print("Got die event for container", container_id)
-        if container_id not in containers:
-            app.logger.debug("Got event for unknown container %s", container_id)
-            continue
-
-        container, job = containers.pop(container_id)
-
-        if container_id in timeout_tasks:
-            timeout = timeout_tasks.pop(container_id)
-            timeout.cancel()
-        else:
-            app.logger.debug("No timeout task found for %s", container_id)
-
-        info = await container.show()
-        exit_code = info['State']['ExitCode']
-        app.logger.debug("args; %r, return code %s", info['Args'], exit_code)
-
-        if exit_code != 0:
-            log = await container.log(stdout=True, stderr=True)
-            job.state = 'failed'
-            job.status = 'failed: {}'.format(log)
-            app.logger.debug(log)
-        else:
-            job.state = 'done'
-            job.status = 'done'
-
-        await job.commit()
-
-        await db.lrem('jobs:running', 1, job.job_id)
-        await db.lpush('jobs:complete', job.job_id)
-
-        await container.delete(force=True)
-
-
-async def cancel(app, container, job):
+async def cancel(container, event):
     """Kill the container once the timeout has expired
 
-    :param app: The app containing all shared constructs
     :param container: Container object to kill
-    :param job: Job object for job runnign on container
+    :param event: Future tracking this container run
     """
     logging.debug("Timeout expired, killing container %s", container._id[:8])
 
     try:
         await container.kill()
-        job.state = 'failed'
-        job.status = 'failed: Runtime exceeded'
-        await job.commit()
+        event.set_result(JobOutcome.TIMEOUT)
     except DockerError:
         pass
 

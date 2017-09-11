@@ -2,10 +2,9 @@
 import argparse
 import os
 from envparse import Env
+from .app import StandaloneApplication
 from .core import (
-    StandaloneApplication,
     dispatch,
-    cleanup,
     init_vars,
     teardown_containers,
     RunConfig,
@@ -92,8 +91,8 @@ def main():
     app.on_cleanup.append(close_docker)
     app.on_cleanup.append(close_db)
 
-    app.tasks.append(dispatch)
-    app.tasks.append(cleanup)
+    for i in range(args.max_jobs):
+        app.tasks.append(dispatch)
 
     app.run()
 

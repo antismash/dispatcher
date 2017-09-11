@@ -10,8 +10,13 @@ class Job:
         'state',
         'molecule_type',
         'genefinding',
-        'added',
-        'last_changed',
+    ]
+
+    INTERNAL = [
+        '_db',
+        '_id',
+        '_key',
+        '_taxon',
     ]
 
     ATTRIBUTES = [
@@ -33,7 +38,12 @@ class Job:
         'cf_threshold',
         'cf_npfams',
         'minimal',
+        'added',
+        'last_changed',
+        'dispatcher',
     ]
+
+    __slots__ = ATTRIBUTES + list(map(lambda x: '_%s' % x, PROPERTIES)) + INTERNAL
 
     BOOL_ARGS = {
         'clusterblast',
