@@ -7,9 +7,9 @@ class Job:
     VALID_TAXA = {'bacterial', 'fungal', 'plant'}
 
     PROPERTIES = [
-        'state',
-        'molecule_type',
         'genefinding',
+        'molecule_type',
+        'state',
     ]
 
     INTERNAL = [
@@ -20,47 +20,47 @@ class Job:
     ]
 
     ATTRIBUTES = [
-        'download',
-        'filename',
-        'annfile',
-        'email',
-        'status',
-        'clusterblast',
-        'subclusterblast',
-        'knownclusterblast',
-        'smcogs',
-        'asf',
-        'clusterfinder',
-        'borderpredict',
-        'full_hmmer',
-        'seed',
-        'cf_cdsnr',
-        'cf_threshold',
-        'cf_npfams',
-        'minimal',
         'added',
-        'last_changed',
+        'annfile',
+        'asf',
+        'borderpredict',
+        'cf_cdsnr',
+        'cf_npfams',
+        'cf_threshold',
+        'clusterblast',
+        'clusterfinder',
         'dispatcher',
+        'download',
+        'email',
+        'filename',
+        'full_hmmer',
+        'knownclusterblast',
+        'last_changed',
+        'minimal',
+        'seed',
+        'smcogs',
+        'status',
+        'subclusterblast',
     ]
 
     __slots__ = ATTRIBUTES + list(map(lambda x: '_%s' % x, PROPERTIES)) + INTERNAL
 
     BOOL_ARGS = {
-        'clusterblast',
-        'subclusterblast',
-        'knownclusterblast',
-        'smcogs',
         'asf',
-        'clusterfinder',
         'borderpredict',
         'full_hmmer',
+        'clusterblast',
+        'clusterfinder',
+        'knownclusterblast',
         'minimal',
+        'smcogs',
+        'subclusterblast',
     }
 
     INT_ARGS = {
-        'seed',
         'cf_cdsnr',
         'cf_npfams',
+        'seed',
     }
 
     FLOAT_ARGS = {
