@@ -6,6 +6,7 @@ from enum import Enum
 import logging
 from aioredis import RedisError
 import os
+import time
 
 from .download import download
 from .models import Job
@@ -129,20 +130,27 @@ async def follow(container, job, event):
     :param job: the Job object running on the container
     :param event: the Future the parent task uses to track this run
     """
-    log = await container.log(stderr=True, stdout=True, follow=True)
-    async for line in log:
-        line = line.strip()
+    timestamp = 0
+    while True:
+        log = await container.log(stderr=True, stdout=True, follow=True, since=timestamp)
+        try:
+            async for line in log:
+                line = line.strip()
 
-        if line.startswith('INFO'):
-            job.status = 'running: {}'.format(line[25:])
-            await job.commit()
+                if line.startswith('INFO'):
+                    job.status = 'running: {}'.format(line[25:])
+                    await job.commit()
 
-        if line.endswith('SUCCESS'):
-            event.set_result(JobOutcome.SUCCESS)
-            return
-        elif line.endswith('FAILED'):
-            event.set_result(JobOutcome.FAILURE)
-            return
+                if line.endswith('SUCCESS'):
+                    event.set_result(JobOutcome.SUCCESS)
+                    return
+                elif line.endswith('FAILED'):
+                    event.set_result(JobOutcome.FAILURE)
+                    return
+                timestamp = int(time.time())
+        except asyncio.TimeoutError:
+            # Docker is dumb and times out after 5 minutes, just retry
+            pass
 
 
 def create_commandline(job, conf):
