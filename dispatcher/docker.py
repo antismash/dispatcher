@@ -8,7 +8,6 @@ async def init_docker(app):
     """Init the docker connection"""
     docker = aiodocker.Docker()
     app['docker'] = docker
-    app['docker_subscriber'] = subscriber
 
 
 async def close_docker(app):
