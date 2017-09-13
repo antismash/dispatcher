@@ -125,6 +125,7 @@ class Job:
             raise ValueError('Invalid state {}'.format(value))
 
         self._state = value
+        self.changed()
 
     @property
     def molecule_type(self):
@@ -156,6 +157,10 @@ class Job:
             return False
 
         return True
+
+    def changed(self):
+        """Update the job's last changed timestamp"""
+        self.last_changed = datetime.utcnow()
 
     def to_dict(self, extra_info=False):
         ret = {}

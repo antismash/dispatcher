@@ -139,6 +139,7 @@ async def follow(container, job, event):
 
                 if line.startswith('INFO'):
                     job.status = 'running: {}'.format(line[25:])
+                    job.changed()
                     await job.commit()
 
                 if line.endswith('SUCCESS'):
