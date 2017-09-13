@@ -1,7 +1,6 @@
 """Core dispatcher logic"""
 from aiodocker.exceptions import DockerError
 import asyncio
-from datetime import datetime
 from enum import Enum
 import logging
 from aioredis import RedisError
@@ -64,7 +63,6 @@ async def run_container(job, app):
     app.logger.debug("Dispatching job %s", job)
     job.state = 'running'
     job.status = 'running'
-    job.last_changed = datetime.utcnow()
     await job.commit()
 
     await db.lrem('{}:queued'.format(run_conf.name), 1, job.job_id)
