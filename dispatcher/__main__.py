@@ -20,8 +20,10 @@ def main():
     env = Env(
         # dispatcher name for management
         ASD_NAME=dict(cast=str, default=os.environ.get('HOSTNAME', 'dispatcher')),
+        # Redis database
+        ASD_DB=dict(cast=str, default='redis://localhost:6379/0'),
         # Redis queue
-        ASD_QUEUE=dict(cast=str, default='redis://localhost:6379/0'),
+        ASD_QUEUE=dict(cast=str, default='jobs:queued'),
         # Working directory
         ASD_WORKDIR=dict(cast=str, default=os.path.join(os.getcwd(), 'upload')),
         # Directory to keep status files in
@@ -42,9 +44,12 @@ def main():
 
     parser = argparse.ArgumentParser(description='Dispatch antiSMASH containers')
 
+    parser.add_argument('--database', dest='db',
+                        default=env('ASD_DB'),
+                        help="URI of the database containing the job queue (default: %(default)s).")
     parser.add_argument('-q', '--queue', dest='queue',
                         default=env('ASD_QUEUE'),
-                        help="URI of the database containing the job queue (default: %(default)s).")
+                        help="Name of the job queue (default: %(default)s).")
     parser.add_argument('-w', '--workdir', dest='workdir',
                         default=env('ASD_WORKDIR'),
                         help="Path to working directory containing the uploaded sequences (default: %(default)s).")

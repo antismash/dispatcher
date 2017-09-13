@@ -24,7 +24,7 @@ async def dispatch(app):
     run_conf = app['run_conf']
     while True:
         try:
-            uid = await db.brpoplpush('jobs:queued', '{}:queued'.format(run_conf.name), timeout=5)
+            uid = await db.brpoplpush(run_conf.queue, '{}:queued'.format(run_conf.name), timeout=5)
             if uid is None:
                 await asyncio.sleep(5)
                 continue
@@ -252,6 +252,7 @@ class RunConfig:
         'max_jobs',
         'name',
         'pfam_dir',
+        'queue',
         'statusdir',
         'timeout',
         'workdir',
@@ -265,6 +266,7 @@ class RunConfig:
                  max_jobs,
                  name,
                  pfam_dir,
+                 queue,
                  statusdir,
                  timeout,
                  workdir,
@@ -277,6 +279,7 @@ class RunConfig:
         self.max_jobs = max_jobs
         self.name = name
         self.pfam_dir = pfam_dir
+        self.queue = queue
         self.statusdir = statusdir
         self.timeout = timeout
         self.workdir = workdir
@@ -295,6 +298,7 @@ class RunConfig:
                    args.max_jobs,
                    args.name,
                    args.pfam_dir,
+                   args.queue,
                    args.statusdir,
                    args.timeout,
                    args.workdir,

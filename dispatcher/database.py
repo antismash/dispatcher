@@ -18,10 +18,10 @@ class DatabaseConfig:
 
         :param args: argparse.Namespace containing the database-related settings
         """
-        assert args.queue.startswith('redis://')
+        assert args.db.startswith('redis://')
 
         # skip the protocol
-        queue = args.queue[8:]
+        queue = args.db[8:]
 
         parts = queue.split('/')
         db = 0 if len(parts) < 2 else int(parts[-1])
