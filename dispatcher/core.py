@@ -169,7 +169,6 @@ def create_commandline(job, conf):
         job.filename,
         '--cpus', str(conf.cpus),
         '--taxon', job.taxon,
-        '--statusfile', os.path.join(conf.statusdir, job.job_id),
         '--outputfolder', job_folder,
         '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id))
     ]
@@ -196,7 +195,6 @@ def create_host_config(job, conf):
         "{}:/databases/pfam:ro".format(conf.pfam_dir),
         "{}:/data/antismash/upload".format(conf.workdir),
         "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id)),
-        "{0}:{0}".format(conf.statusdir),
     ]
 
     host_config = dict(Binds=binds)
@@ -258,7 +256,6 @@ class RunConfig:
         'name',
         'pfam_dir',
         'queue',
-        'statusdir',
         'timeout',
         'workdir',
         'uid_string',
