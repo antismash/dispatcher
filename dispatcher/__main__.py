@@ -26,6 +26,8 @@ def main():
         ASD_QUEUE=dict(cast=str, default='jobs:queued'),
         # Working directory
         ASD_WORKDIR=dict(cast=str, default=os.path.join(os.getcwd(), 'upload')),
+        # Docker image to use
+        ASD_IMAGE=dict(cast=str, default="antismash/standalone-lite:latest"),
         # Directory to keep status files in
         ASD_STATUSDIR=dict(cast=str, default='/tmp/antismash_status'),
         # Job timeout in seconds, default 1 day (86400 s)
@@ -53,6 +55,9 @@ def main():
     parser.add_argument('-w', '--workdir', dest='workdir',
                         default=env('ASD_WORKDIR'),
                         help="Path to working directory containing the uploaded sequences (default: %(default)s).")
+    parser.add_argument('-i', '--image', dest='image',
+                        default=env('ASD_IMAGE'),
+                        help="Docker image to run (default: %(default)s).")
     parser.add_argument('-s', '--satusdir', dest='statusdir',
                         default=env('ASD_STATUSDIR'),
                         help="Path to directory containing the status files (default: %(default)s).")

@@ -74,7 +74,7 @@ async def run_container(job, app):
     container = await docker.containers.create(
         config={
             'Cmd': create_commandline(job, run_conf),
-            'Image': 'antismash/standalone-lite:4.0.2',
+            'Image': run_conf.image,
             'HostConfig': create_host_config(job, run_conf),
             'User': run_conf.uid_string,
         }
@@ -253,6 +253,7 @@ class RunConfig:
         'cpus',
         'debug',
         'entrez_url',
+        'image',
         'max_jobs',
         'name',
         'pfam_dir',
