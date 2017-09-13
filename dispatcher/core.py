@@ -263,31 +263,14 @@ class RunConfig:
         'uid_string',
     )
 
-    def __init__(self,
-                 clusterblast_dir,
-                 cpus,
-                 debug,
-                 max_jobs,
-                 name,
-                 pfam_dir,
-                 queue,
-                 statusdir,
-                 timeout,
-                 workdir,
-                 uid_string):
+    def __init__(self, *args):
         """Initialise a RunConfig"""
-        self.clusterblast_dir = clusterblast_dir
-        self.cpus = cpus
-        self.debug = debug
+
+        for i, arg in enumerate(args):
+            self.__setattr__(RunConfig.__slots__[i], arg)
+
+        # Unlikely to change, so special case this
         self.entrez_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
-        self.max_jobs = max_jobs
-        self.name = name
-        self.pfam_dir = pfam_dir
-        self.queue = queue
-        self.statusdir = statusdir
-        self.timeout = timeout
-        self.workdir = workdir
-        self.uid_string = uid_string
 
     @classmethod
     def from_argarse(cls, args):
@@ -296,15 +279,12 @@ class RunConfig:
         :param args: argparse.Namespace to read values from
         :return: RunConfig instance
         """
-        return cls(args.clusterblast_dir,
-                   args.cpus,
-                   args.debug,
-                   args.max_jobs,
-                   args.name,
-                   args.pfam_dir,
-                   args.queue,
-                   args.statusdir,
-                   args.timeout,
-                   args.workdir,
-                   args.uid_string)
+        arg_list = []
+        for arg in RunConfig.__slots__:
+            if arg == 'entrez_url':
+                arg_list.append(None)
+                continue
+            arg_list.append(args.__getattribute__(arg))
+
+        return cls(*arg_list)
 
