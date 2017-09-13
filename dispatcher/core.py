@@ -132,8 +132,8 @@ async def follow(container, job, event):
     """
     timestamp = 0
     while True:
-        log = await container.log(stderr=True, stdout=True, follow=True, since=timestamp)
         try:
+            log = await container.log(stderr=True, stdout=True, follow=True, since=timestamp)
             async for line in log:
                 line = line.strip()
 
@@ -151,6 +151,9 @@ async def follow(container, job, event):
         except asyncio.TimeoutError:
             # Docker is dumb and times out after 5 minutes, just retry
             pass
+        except (DockerError, KeyboardInterrupt):
+            # Most likely the container got killed in the meantime, just exit
+            return
 
 
 def create_commandline(job, conf):
