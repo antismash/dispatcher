@@ -171,13 +171,18 @@ def create_commandline(job, conf):
         '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id))
     ]
 
-    if job.minimal:
-        args.append('--minimal')
-
     if conf.debug:
         args.append('--debug')
     else:
         args.append('--verbose')
+
+    if job.gff3:
+        args.extend(['--gff3', os.path.join(os.sep, 'input', job.gff3)])
+
+    # All config that should work for both minimal and regular jobs needs to go above this line
+    if job.minimal:
+        args.append('--minimal')
+        return args
 
     return args
 

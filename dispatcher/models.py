@@ -21,7 +21,6 @@ class Job:
 
     ATTRIBUTES = [
         'added',
-        'annfile',
         'asf',
         'borderpredict',
         'cf_cdsnr',
@@ -34,6 +33,7 @@ class Job:
         'email',
         'filename',
         'full_hmmer',
+        'gff3',
         'knownclusterblast',
         'last_changed',
         'minimal',
