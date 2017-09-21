@@ -34,6 +34,7 @@ class Job:
         'filename',
         'full_hmmer',
         'gff3',
+        'jobtype',
         'knownclusterblast',
         'last_changed',
         'minimal',
