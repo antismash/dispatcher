@@ -45,6 +45,11 @@ async def dispatch(app):
         except RedisError as exc:
             app.logger.error("Got redis error: %r", exc)
             raise SystemExit()
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            app.logger.error("Got unhandled exception %s: '%s'", type(exc), str(exc))
+            raise SystemExit()
 
 
 async def run_container(job, db, app):
