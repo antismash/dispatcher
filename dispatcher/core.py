@@ -95,7 +95,7 @@ async def run_container(job, db, app):
     timeout = app.loop.call_later(run_conf.timeout, timeout_handler)
     timeout_tasks[container._id] = timeout
 
-    res = await event
+    res, warnings, errors = await event
     if res == JobOutcome.SUCCESS:
         timeout.cancel()
         job.state = 'done'
@@ -103,27 +103,28 @@ async def run_container(job, db, app):
     elif res == JobOutcome.FAILURE:
         timeout.cancel()
         job.state = 'failed'
-        # TODO: Grab the error message
-        job.status = 'failed: INSERT ERROR MESSAGE'
-        await send_error_mail(app, job)
+        error_lines = '\n'.join(errors)
+        job.status = 'failed: Job returned errors: \n{}'.format(error_lines)
+        await send_error_mail(app, job, warnings, errors)
     else:
         task.cancel()
         job.state = 'failed'
         job.status = 'failed: Runtime exceeded'
+        await send_error_mail(app, job, warnings, errors)
 
     del timeout_tasks[container._id]
 
     await job.commit()
 
     await db.lrem('jobs:running', 1, job.job_id)
-    await db.lpush('jobs:complete', job.job_id)
+    await db.lpush('jobs:completed', job.job_id)
 
     app.logger.debug('Done with %s', container._id[:8])
 
     await container.delete(force=True)
     del containers[container._id]
 
-    await send_job_mail(app, job)
+    await send_job_mail(app, job, warnings, errors)
 
     app.logger.debug('Finished job %s', job)
 
@@ -136,6 +137,8 @@ async def follow(container, job, event):
     :param event: the Future the parent task uses to track this run
     """
     timestamp = 0
+    warnings = []
+    errors = []
     while True:
         try:
             log = await container.log(stderr=True, stdout=True, follow=True, since=timestamp)
@@ -146,12 +149,16 @@ async def follow(container, job, event):
                     job.status = 'running: {}'.format(line[25:])
                     job.changed()
                     await job.commit()
+                elif line.startswith('WARNING'):
+                    warnings.append(line)
+                elif line.startswith('ERROR'):
+                    errors.append(line)
 
                 if line.endswith('SUCCESS'):
-                    event.set_result(JobOutcome.SUCCESS)
+                    event.set_result((JobOutcome.SUCCESS, warnings, errors))
                     return
                 elif line.endswith('FAILED'):
-                    event.set_result(JobOutcome.FAILURE)
+                    event.set_result((JobOutcome.FAILURE, warnings, errors))
                     return
                 timestamp = int(time.time())
         except asyncio.TimeoutError:
@@ -221,7 +228,7 @@ async def cancel(container, event):
 
     try:
         await container.kill()
-        event.set_result(JobOutcome.TIMEOUT)
+        event.set_result((JobOutcome.TIMEOUT, [], ['Runtime exceeded']))
     except DockerError:
         pass
 

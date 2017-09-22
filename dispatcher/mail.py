@@ -79,7 +79,7 @@ async def close_mail(app):
     await smtp.quit()
 
 
-async def send_job_mail(app, job):
+async def send_job_mail(app, job, warnings, errors):
     """Send a 'your job finished' mail"""
     if not job.email:
         app.logger.debug('no email configured')
@@ -93,7 +93,7 @@ async def send_job_mail(app, job):
     if job.state == 'done':
         action_string = success_template.format(j=job, c=mail_conf)
     else:
-        action_string = failure_template.format(c=mail_conf)
+        action_string = failure_template.format(c=mail_conf, errors="\n".join(errors))
 
     message_text = message_template.format(j=job, c=mail_conf, action_string=action_string)
 
@@ -105,14 +105,14 @@ async def send_job_mail(app, job):
     await _send_mail(app, message)
 
 
-async def send_error_mail(app, job):
+async def send_error_mail(app, job, warnings, errors):
     """Send an error report to make debugging easier"""
     mail_conf = app['mail_conf']
     if not mail_conf.enabled:
         app.logger.debug("Not sending error emails, no mail server configured")
         return
 
-    message_text = error_message_template.format(j=job, c=mail_conf)
+    message_text = error_message_template.format(j=job, c=mail_conf, errors=errors, warnings=warnings)
     message = MIMEText(message_text)
     message['From'] = mail_conf.sender
     message['To'] = mail_conf.sender
@@ -157,7 +157,10 @@ success_template = """You can find the results on
 Results will be kept for one month and then deleted automatically.
 """
 
-failure_template = """Please contact {c.from} to resolve the issue."""
+failure_template = """It produced the following error messages:
+{errors}
+
+Please contact {c.sender} to resolve the issue."""
 
 error_message_template = """The {c.tool} job {j.job_id} has failed.
 Dispatcher: {j.dispatcher}
@@ -165,6 +168,9 @@ Input file: {c.base_url}/upload/{j.job_id}/{j.filename}
 Log file: {c.base_url}/upload/{j.job_id}/{j.job_id}.log
 User email: {j.email}
 State: {j.state}
-Status:
-{j.status}
+Errors:
+{errors}
+
+Warnings:
+{warnings}
 """
