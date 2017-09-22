@@ -5,12 +5,13 @@ import aioredis
 
 class DatabaseConfig:
     """Class collecting all the database-related configuraion"""
-    __slots__ = ('host', 'port', 'db')
+    __slots__ = ('host', 'port', 'db', 'max_conns')
 
-    def __init__(self, host, port, db):
+    def __init__(self, host, port, db, max_conns):
         self.host = host
         self.port = port
         self.db = db
+        self.max_conns = max_conns
 
     @classmethod
     def from_argparse(cls, args):
@@ -32,7 +33,9 @@ class DatabaseConfig:
 
         host = parts[0]
 
-        return cls(host, port, db)
+        max_conns = (args.max_jobs * 2) + 5
+
+        return cls(host, port, db, max_conns)
 
 
 async def init_db(app):
@@ -43,7 +46,8 @@ async def init_db(app):
     conf = app['db_conf']
     app.logger.debug("Connecting to redis://%s:%s/%s", conf.host, conf.port, conf.db)
 
-    engine = await aioredis.create_redis((conf.host, conf.port), db=conf.db, encoding='utf-8', loop=app.loop)
+    engine = await aioredis.create_pool((conf.host, conf.port), db=conf.db, encoding='utf-8',
+                                        maxsize=conf.max_conns, loop=app.loop)
     app['engine'] = engine
 
 

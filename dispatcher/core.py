@@ -20,7 +20,8 @@ class JobOutcome(Enum):
 
 async def dispatch(app):
     """Run the dispatcher main process."""
-    db = app['engine']
+    pool = app['engine']
+    db = await pool.acquire()
     run_conf = app['run_conf']
     while True:
         try:
@@ -29,7 +30,8 @@ async def dispatch(app):
                 await asyncio.sleep(5)
                 continue
 
-            job = Job(db, uid)
+            job_db_conn = await pool.acquire()
+            job = Job(job_db_conn, uid)
             await job.fetch()
 
             job.dispatcher = run_conf.name
@@ -37,17 +39,19 @@ async def dispatch(app):
             job.status = 'queued: {}'.format(run_conf.name)
             await job.commit()
 
-            await run_container(job, app)
+            await run_container(job, db, app)
+            await pool.release(job_db_conn)
 
         except RedisError as exc:
             app.logger.error("Got redis error: %r", exc)
             raise SystemExit()
 
 
-async def run_container(job, app):
+async def run_container(job, db, app):
     """Run a docker container for the given job
 
     :param job: A Job object representing the job to run
+    :param db: A Redis database connection from the pool
     :param app: The app object with all the central config values
     :return:
     """
@@ -55,7 +59,6 @@ async def run_container(job, app):
     timeout_tasks = app['timeout_tasks']
     containers = app['containers']
     run_conf = app['run_conf']
-    db = app['engine']
 
     # TODO: put download jobs in a separate queue, handle them in a separate task?
     if job.download != '':
@@ -232,7 +235,7 @@ async def init_vars(app):
 async def teardown_containers(app):
     """Tear down all remaining docker containers"""
     containers = app['containers']
-    db = app['engine']
+    db = app['engine'].acquire()
 
     while len(containers):
         app.logger.debug("cleaning containers")
