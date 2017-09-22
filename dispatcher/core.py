@@ -247,7 +247,7 @@ async def init_vars(app):
 async def teardown_containers(app):
     """Tear down all remaining docker containers"""
     containers = app['containers']
-    db = app['engine'].acquire()
+    db = await app['engine'].acquire()
 
     while len(containers):
         app.logger.debug("cleaning containers")
