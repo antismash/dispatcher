@@ -12,6 +12,7 @@ from .core import (
 from .database import DatabaseConfig, init_db, close_db
 from .docker import init_docker, close_docker
 from .log import setup_logging
+from .mail import EmailConfig, init_mail, close_mail
 
 
 def main():
@@ -40,6 +41,20 @@ def main():
         ASD_PFAM_DIR=dict(cast=str, default='/data/databases/pfam'),
         # uid/gid for running the container
         ASD_UID_STRING=dict(cast=str, default='{}:{}'.format(os.getuid(), os.getgid())),
+        # email password
+        ASD_EMAIL_PASSWORD=dict(cast=str, default=''),
+        # email username
+        ASD_EMAIL_USER=dict(cast=str, default=''),
+        # encryption mechanism to use
+        ASD_EMAIL_ENCRYPT=dict(cast=str, default='no'),
+        # email host
+        ASD_EMAIL_HOST=dict(cast=str, default=''),
+        # email to use as sender
+        ASD_EMAIL_FROM=dict(cast=str, default=''),
+        # tool name for email
+        ASD_TOOL_NAME=dict(cast=str, default='antiSMASH'),
+        # base URL to use in emails
+        ASD_BASE_URL=dict(cast=str, default='https://antismash.secondarymetabolites.org'),
     )
 
     parser = argparse.ArgumentParser(description='Dispatch antiSMASH containers')
@@ -92,12 +107,17 @@ def main():
     run_conf = RunConfig.from_argarse(args)
     app['run_conf'] = run_conf
 
+    mail_conf = EmailConfig.from_env(env)
+    app['mail_conf'] = mail_conf
+
     app.on_startup.append(init_db)
     app.on_startup.append(init_docker)
+    app.on_startup.append(init_mail)
     app.on_startup.append(init_vars)
 
     # The order here is important
     app.on_cleanup.append(teardown_containers)
+    app.on_cleanup.append(close_mail)
     app.on_cleanup.append(close_docker)
     app.on_cleanup.append(close_db)
 

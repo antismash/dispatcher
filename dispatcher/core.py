@@ -8,6 +8,7 @@ import os
 import time
 
 from .download import download
+from .mail import send_job_mail, send_error_mail
 from .models import Job
 
 
@@ -101,6 +102,7 @@ async def run_container(job, app):
         job.state = 'failed'
         # TODO: Grab the error message
         job.status = 'failed: INSERT ERROR MESSAGE'
+        await send_error_mail(app, job)
     else:
         task.cancel()
         job.state = 'failed'
@@ -117,6 +119,8 @@ async def run_container(job, app):
 
     await container.delete(force=True)
     del containers[container._id]
+
+    await send_job_mail(app, job)
 
     app.logger.debug('Finished job %s', job)
 
