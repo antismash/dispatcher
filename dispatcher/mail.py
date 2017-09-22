@@ -116,7 +116,7 @@ async def send_error_mail(app, job, warnings, errors):
     message = MIMEText(message_text)
     message['From'] = mail_conf.sender
     message['To'] = mail_conf.sender
-    message['Subject'] = "[{j.jobtype}] {c.tool} job {j.job_id} failed with {j.state}.".format(j=job, c=mail_conf)
+    message['Subject'] = "[{j.jobtype}] {c.tool} job {j.job_id} failed.".format(j=job, c=mail_conf)
 
     await _send_mail(app, message)
 
