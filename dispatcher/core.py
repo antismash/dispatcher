@@ -40,7 +40,7 @@ async def dispatch(app):
             await job.commit()
 
             await run_container(job, db, app)
-            await pool.release(job_db_conn)
+            pool.release(job_db_conn)
 
         except RedisError as exc:
             app.logger.error("Got redis error: %r", exc)
