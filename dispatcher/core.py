@@ -9,7 +9,7 @@ import time
 
 from .download import download
 from .mail import send_job_mail, send_error_mail
-from .models import Job
+from .models import Control, Job
 
 
 class JobOutcome(Enum):
@@ -23,8 +23,14 @@ async def dispatch(app):
     pool = app['engine']
     db = await pool.acquire()
     run_conf = app['run_conf']
+    run_conf.up()
     while True:
         try:
+            if run_conf.want_less_jobs():
+                app.logger.debug("%s shutting down a task", run_conf.name)
+                run_conf.down()
+                break
+
             uid = await db.brpoplpush(run_conf.queue, '{}:queued'.format(run_conf.name), timeout=5)
             if uid is None:
                 await asyncio.sleep(5)
@@ -50,6 +56,7 @@ async def dispatch(app):
         except Exception as exc:
             app.logger.error("Got unhandled exception %s: '%s'", type(exc), str(exc))
             raise SystemExit()
+    pool.release(db)
 
 
 async def run_container(job, db, app):
@@ -266,6 +273,37 @@ async def teardown_containers(app):
         await db.lpush('jobs:manual', job.job_id)
 
 
+async def manage(app):
+    """Run the dispatcher management process."""
+    pool = app['engine']
+    db = await pool.acquire()
+    run_conf = app['run_conf']
+    control = Control(db, run_conf.name, run_conf.max_jobs)
+    await control.commit()
+    while True:
+        await control.fetch()
+
+        if control.stop_scheduled:
+            control.max_jobs = 0
+            await control.commit()
+
+        run_conf.max_jobs = control.max_jobs
+        if run_conf.want_more_jobs():
+            app.logger.debug("Starting an extra task")
+            app.start_task(dispatch)
+
+        await asyncio.sleep(10)
+
+        if run_conf.running_jobs == 0:
+            break
+
+    control.running = False
+    control.stop_scheduled = False
+    control.status = 'shut down'
+    await control.commit()
+    pool.release(db)
+
+
 class RunConfig:
     """Container for runtime-related configuration"""
     __slots__ = (
@@ -281,6 +319,7 @@ class RunConfig:
         'timeout',
         'workdir',
         'uid_string',
+        '_running_jobs',
     )
 
     def __init__(self, *args):
@@ -291,6 +330,27 @@ class RunConfig:
 
         # Unlikely to change, so special case this
         self.entrez_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
+        self._running_jobs = 0
+
+    @property
+    def running_jobs(self):
+        return self._running_jobs
+
+    def want_more_jobs(self):
+        """Check if less than max_jobs are running"""
+        return self.running_jobs < self.max_jobs
+
+    def want_less_jobs(self):
+        """Check if more than max_jobs are running"""
+        return self.running_jobs > self.max_jobs
+
+    def up(self):
+        """Called when a dispatcher task starts up"""
+        self._running_jobs += 1
+
+    def down(self):
+        """Called when a dispatcher task shuts down"""
+        self._running_jobs -= 1
 
     @classmethod
     def from_argarse(cls, args):
@@ -301,6 +361,8 @@ class RunConfig:
         """
         arg_list = []
         for arg in RunConfig.__slots__:
+            if arg.startswith('_'):
+                continue
             if arg == 'entrez_url':
                 arg_list.append(None)
                 continue

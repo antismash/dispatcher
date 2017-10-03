@@ -6,6 +6,7 @@ from .app import StandaloneApplication
 from .core import (
     dispatch,
     init_vars,
+    manage,
     teardown_containers,
     RunConfig,
 )
@@ -123,6 +124,7 @@ def main():
 
     for i in range(args.max_jobs):
         app.tasks.append(dispatch)
+    app.main_task = manage
 
     app.run()
 

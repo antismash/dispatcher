@@ -219,3 +219,68 @@ class Job:
     async def commit(self):
         return await self._db.hmset_dict(self._key, self.to_dict())
 
+
+class Control:
+    """Dispatcher management object"""
+
+    ATTRIBUTES = (
+        'name',
+        'running',
+        'stop_scheduled',
+        'status',
+        'max_jobs',
+    )
+
+    INTERNAL = (
+        '_db',
+        '_key',
+    )
+
+    __slots__ = ATTRIBUTES + INTERNAL
+
+    BOOL_ARGS = {
+        'running',
+        'stop_scheduled'
+    }
+
+    INT_ARGS = {
+        'max_jobs',
+    }
+
+    def __init__(self, db, name, max_jobs):
+        self.name = name
+        self._db = db
+        self._key = "control:{}".format(self.name)
+        self.stop_scheduled = False
+        self.running = True
+        self.status = 'running'
+        self.max_jobs = max_jobs
+
+    async def fetch(self):
+        """Fetch object from DB"""
+        job_exists = await self._db.exists(self._key)
+        if job_exists == 0:
+            return
+
+        values = await self._db.hmget(self._key, *Control.ATTRIBUTES)
+
+        for i, arg in enumerate(Control.ATTRIBUTES):
+            val = values[i]
+
+            if arg in Control.INT_ARGS:
+                val = int(val)
+            elif arg in Control.BOOL_ARGS:
+                val = (val != 'False')
+
+            setattr(self, arg, val)
+
+    async def commit(self):
+        """Commit object to DB"""
+        key_vals = []
+        for arg in Control.ATTRIBUTES:
+            val = getattr(self, arg)
+            if arg in Control.BOOL_ARGS:
+                val = str(val)
+            key_vals.extend([arg, val])
+
+        return await self._db.hmset(self._key, *key_vals)

@@ -20,7 +20,9 @@ class StandaloneApplication:
 
         self._state = {}
         self._loop = None
+        self._started_tasks = []
         self.tasks = []
+        self.main_task = None
 
     def __getitem__(self, key):
         return self._state[key]
@@ -72,6 +74,17 @@ class StandaloneApplication:
 
         self._loop = loop
 
+    def start_task(self, func):
+        """Start up a task"""
+        task = self.loop.create_task(func(self))
+        self._started_tasks.append(task)
+
+        def done_callback(done_task):
+            self._started_tasks.remove(done_task)
+
+        task.add_done_callback(done_callback)
+        return task
+
     def run(self, loop=None):
         """Actually run the application
 
@@ -84,14 +97,12 @@ class StandaloneApplication:
 
         loop.run_until_complete(self.startup())
 
-        started_tasks = []
-
         for func in self.tasks:
-            task = loop.create_task(func(self))
-            started_tasks.append(task)
+            self.start_task(func)
 
         try:
-            loop.run_forever()
+            task = self.start_task(self.main_task)
+            loop.run_until_complete(task)
         except (KeyboardInterrupt, SystemError):
             print("Attempting graceful shutdown, press Ctrl-C again to exit", flush=True)
 
@@ -100,7 +111,7 @@ class StandaloneApplication:
                     _loop.default_exception_handler(context)
             loop.set_exception_handler(shutdown_exception_handler)
 
-            tasks = asyncio.gather(*started_tasks, loop=loop, return_exceptions=True)
+            tasks = asyncio.gather(*self._started_tasks, loop=loop, return_exceptions=True)
             tasks.add_done_callback(lambda _: loop.stop())
             tasks.cancel()
 
