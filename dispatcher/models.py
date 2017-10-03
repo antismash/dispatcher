@@ -21,8 +21,10 @@ class Job:
 
     ATTRIBUTES = [
         'added',
+        'all_orfs',
         'asf',
         'borderpredict',
+        'cassis',
         'cf_cdsnr',
         'cf_npfams',
         'cf_threshold',
@@ -32,8 +34,10 @@ class Job:
         'download',
         'email',
         'filename',
+        'from_pos',
         'full_hmmer',
         'gff3',
+        'inclusive',
         'jobtype',
         'knownclusterblast',
         'last_changed',
@@ -42,26 +46,36 @@ class Job:
         'smcogs',
         'status',
         'subclusterblast',
+        'to_pos',
+        'transatpks_da',
+        'tta',
     ]
 
     __slots__ = ATTRIBUTES + list(map(lambda x: '_%s' % x, PROPERTIES)) + INTERNAL
 
     BOOL_ARGS = {
+        'all_orfs',
         'asf',
         'borderpredict',
+        'cassis',
         'full_hmmer',
         'clusterblast',
         'clusterfinder',
+        'inclusive',
         'knownclusterblast',
         'minimal',
         'smcogs',
         'subclusterblast',
+        'transatpks_da',
+        'tta',
     }
 
     INT_ARGS = {
         'cf_cdsnr',
         'cf_npfams',
+        'from_pos',
         'seed',
+        'to_pos',
     }
 
     FLOAT_ARGS = {
@@ -93,7 +107,7 @@ class Job:
 
         # storage for properties
         self._state = 'created'
-        self._molecule_type = 'nucleotide'
+        self._molecule_type = 'nucl'
         self._genefinding = 'none'
 
         for attribute in self.ATTRIBUTES:
@@ -134,7 +148,7 @@ class Job:
 
     @molecule_type.setter
     def molecule_type(self, value):
-        if value not in {'nucleotide', 'protein'}:
+        if value not in {'nucl', 'prot'}:
             raise ValueError('Invalid molecule_type {}'.format(value))
 
         self._molecule_type = value

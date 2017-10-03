@@ -194,7 +194,8 @@ def create_commandline(job, conf):
         '--cpus', str(conf.cpus),
         '--taxon', job.taxon,
         '--outputfolder', job_folder,
-        '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id))
+        '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id)),
+        '--input-type', job.molecule_type,
     ]
 
     if conf.debug:
@@ -209,6 +210,43 @@ def create_commandline(job, conf):
     if job.minimal:
         args.append('--minimal')
         return args
+
+    if job.smcogs:
+        args.append('--smcogs')
+    if job.asf:
+        args.append('--asf')
+    if job.tta:
+        args.append('--tta')
+    if job.cassis:
+        args.append('cassis')
+    if job.transatpks_da:
+        args.append('--transatpks_da')
+
+    if job.clusterblast:
+        args.append('--clusterblast')
+    if job.knownclusterblast:
+        args.append('--knownclusterblast')
+    if job.subclusterblast:
+        args.append('--subclusterblast')
+
+    if job.full_hmmer:
+        args.append('--full-hmmer')
+    if job.borderpredict:
+        args.append('--borderpredict')
+
+    if job.inclusive:
+        args.append('--inclusive')
+        args += [
+            '--cf_cdsnr', str(job.cf_cdsnr),
+            '--cf_npfams', str(job.cf_npfams),
+            '--cf_threshold', str(job.cf_threshold)
+        ]
+
+    if job.all_orfs:
+        args.append('--all_orfs')
+
+    if job.genefinding:
+        args += ['--genefinding', job.genefinding]
 
     return args
 
