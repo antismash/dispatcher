@@ -7,7 +7,7 @@ class Job:
     VALID_TAXA = {'bacterial', 'fungal', 'plant'}
 
     PROPERTIES = [
-        'genefinding',
+        'genefinder',
         'molecule_type',
         'state',
     ]
@@ -108,7 +108,7 @@ class Job:
         # storage for properties
         self._state = 'created'
         self._molecule_type = 'nucl'
-        self._genefinding = 'none'
+        self._genefinder = 'none'
 
         for attribute in self.ATTRIBUTES:
             setattr(self, attribute, None)
@@ -154,14 +154,14 @@ class Job:
         self._molecule_type = value
 
     @property
-    def genefinding(self):
-        return self._genefinding
+    def genefinder(self):
+        return self._genefinder
 
-    @genefinding.setter
-    def genefinding(self, value):
+    @genefinder.setter
+    def genefinder(self, value):
         if value not in {'prodigal', 'prodigal-m', 'none'}:
             raise ValueError('Invalid genefinding method {}'.format(value))
-        self._genefinding = value
+        self._genefinder = value
 
     @staticmethod
     def is_valid_taxon(taxon: str) -> bool:

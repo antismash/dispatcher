@@ -247,8 +247,9 @@ def create_commandline(job, conf):
     if job.all_orfs:
         args.append('--all_orfs')
 
-    if job.genefinding:
-        args += ['--genefinding', job.genefinding]
+    # TODO: mismatch between database name and parameter name, fix in websmash
+    if job.genefinder:
+        args += ['--genefinding', job.genefinder]
 
     return args
 
