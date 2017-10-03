@@ -74,7 +74,9 @@ async def run_container(job, db, app):
 
     # TODO: put download jobs in a separate queue, handle them in a separate task?
     if job.download != '':
-        await download(job, app)
+        ret = await download(job, app)
+        if not ret:
+            return
 
     app.logger.debug("Dispatching job %s", job)
     job.state = 'running'

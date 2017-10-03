@@ -30,11 +30,11 @@ async def download(job, app):
             'id': job.download,
         }
 
-        if job.molecule_type == 'nucleotide':
+        if job.molecule_type == 'nucl':
             params['db'] = 'nucleotide'
             params['rettype'] = 'gbwithparts'
             file_ending = '.gbk'
-        elif job.molecule_type == 'protein':
+        elif job.molecule_type == 'prot':
             params['db'] = 'protein'
             params['rettype'] = 'fasta'
             file_ending = '.fa'
@@ -43,7 +43,7 @@ async def download(job, app):
             job.state = 'failed'
             job.status = 'failed: Invalid molecule type {}'.format(job.molecule_type)
             await job.commit()
-            return
+            return False
 
         outdir = os.path.join(conf.workdir, job.job_id)
         os.makedirs(outdir, exist_ok=True)
@@ -71,3 +71,4 @@ async def download(job, app):
                 await fh.write(chunk)
 
         await job.commit()
+        return True
