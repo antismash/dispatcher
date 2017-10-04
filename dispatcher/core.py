@@ -155,8 +155,8 @@ async def follow(container, job, event):
     errors = []
     while True:
         try:
-            log = await container.log(stderr=True, stdout=True, follow=True, since=timestamp)
-            async for line in log:
+            log = await container.log(stderr=True, stdout=True, since=timestamp)
+            for line in log:
                 line = line.strip()
 
                 if line.startswith('INFO'):
@@ -175,6 +175,7 @@ async def follow(container, job, event):
                     event.set_result((JobOutcome.FAILURE, warnings, errors))
                     return
                 timestamp = int(time.time())
+            asyncio.sleep(5)
         except asyncio.TimeoutError:
             # Docker is dumb and times out after 5 minutes, just retry
             pass
