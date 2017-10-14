@@ -74,8 +74,14 @@ async def run_container(job, db, app):
 
     # TODO: put download jobs in a separate queue, handle them in a separate task?
     if job.download != '':
-        ret = await download(job, app)
+        try:
+            ret = await download(job, app)
+        except asyncio.TimeoutError:
+            ret = None
         if not ret:
+            job.state = 'failed'
+            job.status = 'failed: Downloading from NCBI failed.'
+            await job.commit()
             return
 
     app.logger.debug("Dispatching job %s", job)
