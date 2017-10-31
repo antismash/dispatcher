@@ -169,6 +169,7 @@ Please contact {c.sender} to resolve the issue."""
 error_message_template = """The {c.tool} job {j.job_id} has failed.
 Dispatcher: {j.dispatcher}
 Input file: {c.base_url}/upload/{j.job_id}/{j.filename}
+GFF file: {c.base_url}/upload/{j.job_id}/{j.gff3}
 Log file: {c.base_url}/upload/{j.job_id}/{j.job_id}.log
 User email: {j.email}
 State: {j.state}
