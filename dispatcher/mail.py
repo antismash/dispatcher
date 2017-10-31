@@ -112,7 +112,8 @@ async def send_error_mail(app, job, warnings, errors):
         app.logger.debug("Not sending error emails, no mail server configured")
         return
 
-    message_text = error_message_template.format(j=job, c=mail_conf, errors=errors, warnings=warnings)
+    message_text = error_message_template.format(j=job, c=mail_conf, errors='\n'.join(errors),
+                                                 warnings='\n'.join(warnings))
     message = MIMEText(message_text)
     message['From'] = mail_conf.sender
     message['To'] = mail_conf.sender

@@ -157,8 +157,12 @@ async def follow(container, job, event):
     :param event: the Future the parent task uses to track this run
     """
     timestamp = 0
-    warnings = []
-    errors = []
+    warnings = set()
+    errors = set()
+
+    def order_logs(logs):
+        return sorted(list(logs))
+
     while True:
         try:
             log = await container.log(stderr=True, stdout=True, since=timestamp)
@@ -170,15 +174,15 @@ async def follow(container, job, event):
                     job.changed()
                     await job.commit()
                 elif line.startswith('WARNING'):
-                    warnings.append(line)
+                    warnings.add(line)
                 elif line.startswith('ERROR'):
-                    errors.append(line)
+                    errors.add(line)
 
                 if line.endswith('SUCCESS'):
-                    event.set_result((JobOutcome.SUCCESS, warnings, errors))
+                    event.set_result((JobOutcome.SUCCESS, order_logs(warnings), order_logs(errors)))
                     return
                 elif line.endswith('FAILED'):
-                    event.set_result((JobOutcome.FAILURE, warnings, errors))
+                    event.set_result((JobOutcome.FAILURE, order_logs(warnings), order_logs(errors)))
                     return
                 timestamp = int(time.time())
             asyncio.sleep(5)
