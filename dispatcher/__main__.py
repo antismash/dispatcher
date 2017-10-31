@@ -52,6 +52,8 @@ def main():
         ASD_EMAIL_HOST=dict(cast=str, default=''),
         # email to use as sender
         ASD_EMAIL_FROM=dict(cast=str, default=''),
+        # email to use for errors
+        ASD_EMAIL_ERROR=dict(cast=str, default=''),
         # tool name for email
         ASD_TOOL_NAME=dict(cast=str, default='antiSMASH'),
         # base URL to use in emails

@@ -13,6 +13,7 @@ class EmailConfig:
         'host',
         'password',
         'sender',
+        'error',
         'tool',
         'user',
     )
@@ -29,10 +30,11 @@ class EmailConfig:
         """Create an EmailConfig from an Env object"""
         kwargs = dict(tool=env('ASD_TOOL_NAME'), base_url=env('ASD_BASE_URL'))
 
-        if env('ASD_EMAIL_HOST') and env('ASD_EMAIL_FROM'):
+        if env('ASD_EMAIL_HOST') and env('ASD_EMAIL_FROM') and env('ASD_EMAIL_ERROR'):
             kwargs['enabled'] = True
             kwargs['host'] = env('ASD_EMAIL_HOST')
             kwargs['sender'] = env('ASD_EMAIL_FROM')
+            kwargs['error'] = env('ASD_EMAIL_ERROR')
 
         if env('ASD_EMAIL_USER') and env('ASD_EMAIL_PASSWORD'):
             kwargs['authenticate'] = True
@@ -116,7 +118,7 @@ async def send_error_mail(app, job, warnings, errors):
                                                  warnings='\n'.join(warnings))
     message = MIMEText(message_text)
     message['From'] = mail_conf.sender
-    message['To'] = mail_conf.sender
+    message['To'] = mail_conf.error
     message['Subject'] = "[{j.jobtype}] {c.tool} job {j.job_id} failed.".format(j=job, c=mail_conf)
 
     await _send_mail(app, message)
