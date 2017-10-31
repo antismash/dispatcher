@@ -10,10 +10,11 @@ class EmailConfig:
         'base_url',
         'enabled',
         'encrypt',
+        'error',
         'host',
         'password',
         'sender',
-        'error',
+        'support',
         'tool',
         'user',
     )
@@ -35,6 +36,10 @@ class EmailConfig:
             kwargs['host'] = env('ASD_EMAIL_HOST')
             kwargs['sender'] = env('ASD_EMAIL_FROM')
             kwargs['error'] = env('ASD_EMAIL_ERROR')
+            if env('ASD_EMAIL_SUPPORT'):
+                kwargs['support'] = env('ASD_EMAIL_SUPPORT')
+            else:
+                kwargs['support'] = env('ASD_EMAIL_ERROR')
 
         if env('ASD_EMAIL_USER') and env('ASD_EMAIL_PASSWORD'):
             kwargs['authenticate'] = True
@@ -164,7 +169,7 @@ Results will be kept for one month and then deleted automatically.
 failure_template = """It produced the following error messages:
 {errors}
 
-Please contact {c.sender} to resolve the issue."""
+Please contact {c.support} to resolve the issue."""
 
 error_message_template = """The {c.tool} job {j.job_id} has failed.
 Dispatcher: {j.dispatcher}
