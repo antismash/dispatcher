@@ -107,7 +107,7 @@ async def send_job_mail(app, job, warnings, errors):
     await _send_mail(app, message)
 
 
-async def send_error_mail(app, job, warnings, errors):
+async def send_error_mail(app, job, warnings, errors, backtrace):
     """Send an error report to make debugging easier"""
     mail_conf = app['mail_conf']
     if not mail_conf.enabled:
@@ -115,7 +115,8 @@ async def send_error_mail(app, job, warnings, errors):
         return
 
     message_text = error_message_template.format(j=job, c=mail_conf, errors='\n'.join(errors),
-                                                 warnings='\n'.join(warnings))
+                                                 warnings='\n'.join(warnings),
+                                                 backtrace='\n'.join(backtrace))
     message = MIMEText(message_text)
     message['From'] = mail_conf.sender
     message['To'] = mail_conf.error
@@ -176,4 +177,7 @@ Errors:
 
 Warnings:
 {warnings}
+
+Backtrace:
+{backtrace}
 """

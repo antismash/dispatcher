@@ -123,9 +123,16 @@ async def run_container(job, db, app):
     elif res == JobOutcome.FAILURE:
         timeout.cancel()
         job.state = 'failed'
+
+        backtrace = [l.strip() for l in await container.log(stderr=True, tail=50)]
+        await send_error_mail(app, job, warnings, errors, backtrace)
+
+        if not errors:
+            errors = backtrace
+
         error_lines = '\n'.join(errors)
         job.status = 'failed: Job returned errors: \n{}'.format(error_lines)
-        await send_error_mail(app, job, warnings, errors)
+
     else:
         task.cancel()
         job.state = 'failed'
