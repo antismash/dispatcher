@@ -137,7 +137,7 @@ async def run_container(job, db, app):
         task.cancel()
         job.state = 'failed'
         job.status = 'failed: Runtime exceeded'
-        await send_error_mail(app, job, warnings, errors)
+        await send_error_mail(app, job, warnings, errors, [])
 
     del timeout_tasks[container._id]
 
