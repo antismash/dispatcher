@@ -238,7 +238,7 @@ def create_commandline(job, conf):
     if job.tta:
         args.append('--tta')
     if job.cassis:
-        args.append('cassis')
+        args.append('--cassis')
     if job.transatpks_da:
         args.append('--transatpks_da')
 
