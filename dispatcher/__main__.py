@@ -1,8 +1,8 @@
 """Dispatcher command line handling"""
 import argparse
 import os
+from aiostandalone import StandaloneApplication
 from envparse import Env
-from .app import StandaloneApplication
 from .core import (
     dispatch,
     init_vars,
@@ -12,7 +12,7 @@ from .core import (
 )
 from .database import DatabaseConfig, init_db, close_db
 from .docker import init_docker, close_docker
-from .log import setup_logging
+from .log import setup_logging, core_logger
 from .mail import EmailConfig, init_mail, close_mail
 
 
@@ -104,7 +104,7 @@ def main():
     args = parser.parse_args()
     setup_logging()
 
-    app = StandaloneApplication()
+    app = StandaloneApplication(logger=core_logger)
 
     db_conf = DatabaseConfig.from_argparse(args)
     app['db_conf'] = db_conf

@@ -16,6 +16,7 @@ install_requires = [
     'envparse',
     'aiofiles',
     'antismash_models',
+    'aio-standalone',
 ]
 
 
