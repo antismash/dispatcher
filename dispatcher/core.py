@@ -172,7 +172,9 @@ async def follow(container, job, event):
 
     while True:
         try:
+            new_timestamp = int(time.time())
             log = await container.log(stderr=True, stdout=True, since=timestamp)
+            timestamp = new_timestamp
             for line in log:
                 line = line.strip()
 
@@ -191,7 +193,6 @@ async def follow(container, job, event):
                 elif line.endswith('FAILED'):
                     event.set_result((JobOutcome.FAILURE, order_logs(warnings), order_logs(errors)))
                     return
-                timestamp = int(time.time())
             await asyncio.sleep(5)
         except asyncio.TimeoutError:
             # Docker is dumb and times out after 5 minutes, just retry
