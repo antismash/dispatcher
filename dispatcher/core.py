@@ -1,5 +1,6 @@
 """Core dispatcher logic"""
 from aiodocker.exceptions import DockerError
+from antismash_models import Control, Job
 import asyncio
 from enum import Enum
 import logging
@@ -9,7 +10,6 @@ import time
 
 from .download import download
 from .mail import send_job_mail, send_error_mail
-from .models import Control, Job
 
 
 class JobOutcome(Enum):
@@ -348,6 +348,10 @@ async def manage(app):
             control.max_jobs = 0
             await control.commit()
 
+        if control.running_jobs != run_conf.running_jobs:
+            control.running_jobs = run_conf.running_jobs
+            await control.commit()
+
         run_conf.max_jobs = control.max_jobs
         if run_conf.want_more_jobs():
             app.logger.debug("Starting an extra task")
@@ -361,6 +365,7 @@ async def manage(app):
     control.running = False
     control.stop_scheduled = False
     control.status = 'shut down'
+    control.running_jobs = 0
     await control.commit()
     pool.release(db)
 
