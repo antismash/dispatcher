@@ -414,7 +414,7 @@ class RunConfig:
         self._running_jobs -= 1
 
     @classmethod
-    def from_argarse(cls, args):
+    def from_argparse(cls, args):
         """Instantiate a RunConfig from an argparse.Namespace
 
         :param args: argparse.Namespace to read values from

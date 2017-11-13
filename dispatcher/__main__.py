@@ -109,7 +109,7 @@ def main():
     db_conf = DatabaseConfig.from_argparse(args)
     app['db_conf'] = db_conf
 
-    run_conf = RunConfig.from_argarse(args)
+    run_conf = RunConfig.from_argparse(args)
     app['run_conf'] = run_conf
 
     mail_conf = EmailConfig.from_env(env)
