@@ -192,9 +192,10 @@ async def follow(container, job, event):
                     event.set_result((JobOutcome.FAILURE, order_logs(warnings), order_logs(errors)))
                     return
                 timestamp = int(time.time())
-            asyncio.sleep(5)
+            await asyncio.sleep(5)
         except asyncio.TimeoutError:
             # Docker is dumb and times out after 5 minutes, just retry
+            await asyncio.sleep(5)
             pass
         except (DockerError, KeyboardInterrupt):
             # Most likely the container got killed in the meantime, just exit
