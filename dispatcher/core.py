@@ -76,7 +76,7 @@ async def run_container(job, db, app):
     run_conf = app['run_conf']
 
     # TODO: put download jobs in a separate queue, handle them in a separate task?
-    if job.download != '':
+    if job.download:
         try:
             ret = await download(job, app)
         except asyncio.TimeoutError:
