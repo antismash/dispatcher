@@ -1,6 +1,6 @@
 """Core dispatcher logic"""
 from aiodocker.exceptions import DockerError
-from antismash_models import Control, Job
+from antismash_models import AsyncControl as Control, AsyncJob as Job
 import asyncio
 from enum import Enum
 import logging
