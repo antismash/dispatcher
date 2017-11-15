@@ -24,6 +24,7 @@ async def dispatch(app):
     db = await pool.acquire()
     run_conf = app['run_conf']
     run_conf.up()
+    MY_QUEUE = '{}:queued'.format(run_conf.name)
     while True:
         try:
             if run_conf.want_less_jobs():
@@ -31,7 +32,9 @@ async def dispatch(app):
                 run_conf.down()
                 break
 
-            uid = await db.brpoplpush(run_conf.queue, '{}:queued'.format(run_conf.name), timeout=5)
+            uid = await db.rpoplpush(run_conf.priority_queue, MY_QUEUE)
+            if uid is None:
+                uid = await db.rpoplpush(run_conf.queue, MY_QUEUE)
             if uid is None:
                 await asyncio.sleep(5)
                 continue
@@ -381,6 +384,7 @@ class RunConfig:
         'max_jobs',
         'name',
         'pfam_dir',
+        'priority_queue',
         'queue',
         'timeout',
         'workdir',
