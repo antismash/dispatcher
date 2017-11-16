@@ -17,6 +17,7 @@ def args():
         pfam_dir='/pfam',
         priority_queue='vip:line',
         queue="boring:line",
+        run_priority=True,
         timeout=300,
         workdir='/workdir',
         uid_string="123:456"

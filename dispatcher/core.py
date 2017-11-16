@@ -33,7 +33,10 @@ async def dispatch(app):
                 run_conf.down()
                 break
 
-            uid = await db.rpoplpush(run_conf.priority_queue, MY_QUEUE)
+            uid = None
+
+            if run_conf.run_priority:
+                uid = await db.rpoplpush(run_conf.priority_queue, MY_QUEUE)
             if uid is None:
                 uid = await db.rpoplpush(run_conf.queue, MY_QUEUE)
             if uid is None:
@@ -316,6 +319,7 @@ class RunConfig:
         'pfam_dir',
         'priority_queue',
         'queue',
+        'run_priority',
         'timeout',
         'workdir',
         'uid_string',

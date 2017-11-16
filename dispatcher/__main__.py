@@ -28,6 +28,8 @@ def main():
         ASD_QUEUE=dict(cast=str, default='jobs:queued'),
         # Priority queue
         ASD_PRIORITY_QUEUE=dict(cast=str, default='jobs:priority'),
+        # Should the priority queue be run?
+        ASD_RUN_PRIORITY=dict(cast=bool, default=True),
         # Working directory
         ASD_WORKDIR=dict(cast=str, default=os.path.join(os.getcwd(), 'upload')),
         # Docker image to use
@@ -75,6 +77,12 @@ def main():
     parser.add_argument('-p', '--priority-queue',
                         default=env('ASD_PRIORITY_QUEUE'),
                         help="Name of the priority queue (default: %(default)s).")
+    parser.add_argument('--run-priority', dest='run_priority',
+                        action='store_true',
+                        help="Enable processing the priority queue.")
+    parser.add_argument('--no-priority', dest='run_priority',
+                        action='store_false',
+                        help="Disable processing the priority queue.")
     parser.add_argument('-w', '--workdir', dest='workdir',
                         default=env('ASD_WORKDIR'),
                         help="Path to working directory containing the uploaded sequences (default: %(default)s).")
@@ -105,6 +113,7 @@ def main():
     parser.add_argument('--uid-string', dest='uid_string',
                         default=env('ASD_UID_STRING'),
                         help="User ID the container should run as (default: %(default)s)")
+    parser.set_defaults(run_priority=env('ASD_RUN_PRIORITY'))
 
     args = parser.parse_args()
     setup_logging()
