@@ -79,7 +79,7 @@ def main():
                         help="Name of the priority queue (default: %(default)s).")
     parser.add_argument('--run-priority', dest='run_priority',
                         action='store_true',
-                        help="Enable processing the priority queue.")
+                        help="Enable processing the priority queue (default: %(default)s).")
     parser.add_argument('--no-priority', dest='run_priority',
                         action='store_false',
                         help="Disable processing the priority queue.")

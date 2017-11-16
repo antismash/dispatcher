@@ -298,11 +298,7 @@ async def manage(app):
         if run_conf.running_jobs == 0:
             break
 
-    control.running = False
-    control.stop_scheduled = False
-    control.status = 'shut down'
-    control.running_jobs = 0
-    await control.commit()
+    await control.delete()
     pool.release(db)
 
 
