@@ -45,7 +45,12 @@ async def dispatch(app):
 
             job_db_conn = await pool.acquire()
             job = Job(job_db_conn, uid)
-            await job.fetch()
+            try:
+                await job.fetch()
+            except ValueError:
+                app.logger.info('Failed to fetch job %s', uid)
+                pool.release(job_db_conn)
+                continue
 
             job.dispatcher = run_conf.name
             job.state = 'queued'
