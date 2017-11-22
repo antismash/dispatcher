@@ -1,5 +1,6 @@
 """Handle email sending"""
 import aiosmtplib
+import asyncio
 from email.mime.text import MIMEText
 
 
@@ -135,18 +136,25 @@ async def _send_mail(app, message):
     conf = app['mail_conf']
     smtp = app['smtp']
 
-    await smtp.connect()
-    if conf.encrypt == 'starttls':
-        app.loggger.debug('running STARTTLS handshake')
-        await smtp.starttls()
+    tries = 0
+    while tries < 5:
+        try:
 
-    if conf.authenticate:
-        await smtp.login(username=conf.user, password=conf.password)
+            await smtp.connect()
+            if conf.encrypt == 'starttls':
+                app.loggger.debug('running STARTTLS handshake')
+                await smtp.starttls()
 
-    await smtp.send_message(message)
+            if conf.authenticate:
+                await smtp.login(username=conf.user, password=conf.password)
 
-    await smtp.quit()
+            await smtp.send_message(message)
 
+            await smtp.quit()
+            break
+        except aiosmtplib.errors.SMTPConnectError:
+            tries += 1
+            await asyncio.sleep(30)
 
 message_template = """Dear {c.tool} user,
 
