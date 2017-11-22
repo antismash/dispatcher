@@ -17,6 +17,7 @@ error_patterns = (
     b'Server Error',
     b'ID list is empty',
     b'Resource temporarily unavailable',
+    b'In it there are neither IDs nor accessions',
 )
 
 
