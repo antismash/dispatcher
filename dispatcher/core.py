@@ -21,8 +21,7 @@ class JobOutcome(Enum):
 
 async def dispatch(app):
     """Run the dispatcher main process."""
-    pool = app['engine']
-    db = await pool.acquire()
+    db = app['engine']
     run_conf = app['run_conf']
     run_conf.up()
     MY_QUEUE = '{}:queued'.format(run_conf.name)
@@ -43,13 +42,11 @@ async def dispatch(app):
                 await asyncio.sleep(5)
                 continue
 
-            job_db_conn = await pool.acquire()
-            job = Job(job_db_conn, uid)
+            job = Job(db, uid)
             try:
                 await job.fetch()
             except ValueError:
                 app.logger.info('Failed to fetch job %s', uid)
-                pool.release(job_db_conn)
                 continue
 
             job.dispatcher = run_conf.name
@@ -58,7 +55,6 @@ async def dispatch(app):
             await job.commit()
 
             await run_container(job, db, app)
-            pool.release(job_db_conn)
 
         except RedisError as exc:
             app.logger.error("Got redis error: %r", exc)
@@ -68,14 +64,13 @@ async def dispatch(app):
         except Exception as exc:
             app.logger.error("Got unhandled exception %s: '%s'", type(exc), str(exc))
             raise SystemExit()
-    pool.release(db)
 
 
 async def run_container(job, db, app):
     """Run a docker container for the given job
 
     :param job: A Job object representing the job to run
-    :param db: A Redis database connection from the pool
+    :param db: A Redis database connection
     :param app: The app object with all the central config values
     :return:
     """
@@ -256,7 +251,7 @@ async def init_vars(app):
 async def teardown_containers(app):
     """Tear down all remaining docker containers"""
     containers = app['containers']
-    db = await app['engine'].acquire()
+    db = await app['engine']
 
     while len(containers):
         app.logger.debug("cleaning containers")
@@ -277,8 +272,7 @@ async def teardown_containers(app):
 
 async def manage(app):
     """Run the dispatcher management process."""
-    pool = app['engine']
-    db = await pool.acquire()
+    db = app['engine']
     run_conf = app['run_conf']
     control = Control(db, run_conf.name, run_conf.max_jobs)
     await control.commit()
@@ -304,7 +298,6 @@ async def manage(app):
             break
 
     await control.delete()
-    pool.release(db)
 
 
 class RunConfig:

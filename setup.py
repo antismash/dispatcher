@@ -9,7 +9,7 @@ if os.path.exists('README.rst'):
     long_description = open('README.rst').read()
 
 install_requires = [
-    'aioredis',
+    'aioredis >= 1.0.0',
     'aiohttp',
     'aiodocker',
     'aiosmtplib',

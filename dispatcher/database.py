@@ -48,7 +48,7 @@ async def init_db(app):
     conf = app['db_conf']
     app.logger.debug("Connecting to redis://%s:%s/%s", conf.host, conf.port, conf.db)
 
-    engine = await aioredis.create_pool((conf.host, conf.port), db=conf.db, encoding='utf-8',
+    engine = await aioredis.create_redis_pool((conf.host, conf.port), db=conf.db, encoding='utf-8',
                                         minsize=conf.min_conns, maxsize=conf.max_conns, loop=app.loop)
     app['engine'] = engine
 
