@@ -153,6 +153,8 @@ async def run_container(job, db, app):
     await db.lrem('jobs:running', 1, job.job_id)
     await db.lpush('jobs:completed', job.job_id)
 
+    await update_stats(db, job)
+
     app.logger.debug('Done with %s', container._id[:8])
 
     await container.delete(force=True)
@@ -161,6 +163,23 @@ async def run_container(job, db, app):
     await send_job_mail(app, job, warnings, errors)
 
     app.logger.debug('Finished job %s', job)
+
+
+async def update_stats(db, job):
+    """Update the statistics for a job.
+
+    This is used to keep per month/week/day stats of job execution.
+
+    :param db: A Redis database connection
+    :param job: A Job object to collect stats for
+    """
+    timestamps = (
+        job.last_changed.strftime("%Y-%m-%d"),  # daily stats
+        job.last_changed.strftime("%Y-CW%U"),   # weekly stats
+        job.last_changed.strftime("%Y"),        # yearly stats
+    )
+    for ts in timestamps:
+        await db.hset("jobs:{timestamp}".format(timestamp=ts), job.job_id, job.state)
 
 
 async def follow(container, job, event):
