@@ -157,8 +157,13 @@ async def run_container(job, db, app):
 
     app.logger.debug('Done with %s', container._id[:8])
 
-    await container.delete(force=True)
-    del containers[container._id]
+    try:
+        await container.delete(force=True)
+        del containers[container._id]
+    except asyncio.TimeoutError:
+        # This is awkward, let's just keep the container in the list and our
+        # on-shutdown cleanup should take care of it.
+        pass
 
     await send_job_mail(app, job, warnings, errors)
 
