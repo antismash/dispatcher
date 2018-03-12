@@ -2,6 +2,7 @@
 from aiodocker.exceptions import DockerError
 from antismash_models import AsyncControl as Control, AsyncJob as Job
 import asyncio
+from datetime import datetime, timedelta
 from enum import Enum
 import logging
 from aioredis import RedisError
@@ -19,16 +20,30 @@ class JobOutcome(Enum):
     TIMEOUT = 'timeout'
 
 
+WORKER_MAX_JOBS = 2
+WORKER_MAX_AGE = timedelta(days=1)
+
+
 async def dispatch(app):
     """Run the dispatcher main process."""
     db = app['engine']
     run_conf = app['run_conf']
     run_conf.up()
     MY_QUEUE = '{}:queued'.format(run_conf.name)
+    counter = 0
+    startup_timestamp = datetime.utcnow()
     while True:
         try:
             if run_conf.want_less_jobs():
                 app.logger.debug("%s shutting down a task", run_conf.name)
+                run_conf.down()
+                break
+            if counter >= WORKER_MAX_JOBS:
+                app.logger.info("%s: Max job count reached for task, shutting down", run_conf.name)
+                run_conf.down()
+                break
+            if datetime.utcnow() - startup_timestamp > WORKER_MAX_AGE:
+                app.logger.info("%s: Max worker age reached, shutting down", run_conf.name)
                 run_conf.down()
                 break
 
@@ -42,6 +57,7 @@ async def dispatch(app):
                 await asyncio.sleep(5)
                 continue
 
+            counter += 1
             job = Job(db, uid)
             try:
                 await job.fetch()
@@ -318,7 +334,7 @@ async def manage(app):
 
         await asyncio.sleep(10)
 
-        if run_conf.running_jobs == 0:
+        if run_conf.running_jobs == 0 and not run_conf.want_more_jobs():
             break
 
     await control.delete()
