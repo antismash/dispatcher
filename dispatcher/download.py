@@ -57,19 +57,23 @@ async def download(job, app):
         job.status = 'downloading: Getting {} from NCBI'.format(job.download)
         await job.commit()
 
-        async with session.get(conf.entrez_url, params=params) as response, aiofiles.open(outfile, 'wb') as fh:
-            while True:
-                chunk = await response.content.read(4096)
-                if not chunk:
-                    job.state = 'running'
-                    job.status = 'running: Downloaded {}'.format(base_filename)
-                    break
-                for pattern in error_patterns:
-                    if pattern in chunk:
-                        job.state = 'failed'
-                        job.status = "Failed to download file with id {} from NCBI: {}".format(job.download, pattern)
+        try:
+            async with session.get(conf.entrez_url, params=params) as response, aiofiles.open(outfile, 'wb') as fh:
+                while True:
+                    chunk = await response.content.read(4096)
+                    if not chunk:
+                        job.state = 'running'
+                        job.status = 'running: Downloaded {}'.format(base_filename)
                         break
-                await fh.write(chunk)
+                    for pattern in error_patterns:
+                        if pattern in chunk:
+                            job.state = 'failed'
+                            job.status = "Failed to download file with id {} from NCBI: {}".format(job.download, pattern)
+                            break
+                    await fh.write(chunk)
+        except aiohttp.client_exceptions.ClientConnectorError as err:
+            job.state = 'failed'
+            job.status = "Failed to download file with id {} from NCBI: {}".format(job.download, err)
 
         await job.commit()
         return True
