@@ -176,7 +176,7 @@ async def run_container(job, db, app):
     try:
         await container.delete(force=True)
         del containers[container._id]
-    except asyncio.TimeoutError:
+    except (asyncio.TimeoutError, DockerError):
         # This is awkward, let's just keep the container in the list and our
         # on-shutdown cleanup should take care of it.
         pass
