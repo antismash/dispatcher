@@ -14,6 +14,7 @@ from .database import DatabaseConfig, init_db, close_db
 from .docker import init_docker, close_docker
 from .log import setup_logging, core_logger
 from .mail import EmailConfig, init_mail, close_mail
+from .version import version_sync
 
 
 def main():
@@ -113,6 +114,8 @@ def main():
     parser.add_argument('--uid-string', dest='uid_string',
                         default=env('ASD_UID_STRING'),
                         help="User ID the container should run as (default: %(default)s)")
+    parser.add_argument('-V', '--version', action='version',
+                        version=version_sync())
     parser.set_defaults(run_priority=env('ASD_RUN_PRIORITY'))
 
     args = parser.parse_args()
