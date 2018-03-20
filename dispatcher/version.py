@@ -1,4 +1,5 @@
 import asyncio
+import os
 import subprocess
 
 __version__ = '0.1.0'
@@ -32,7 +33,8 @@ async def git_version():
     """Get the git version."""
     global _GIT_VERSION
     if _GIT_VERSION is None:
-        proc = await asyncio.create_subprocess_exec('git', 'rev-parse', '--short', 'HEAD')
+        proc = await asyncio.create_subprocess_exec('git', 'rev-parse', '--short', 'HEAD',
+                                                    cwd=os.path.dirname(__file__))
 
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
@@ -49,6 +51,7 @@ def git_version_sync():
     global _GIT_VERSION
     if _GIT_VERSION is None:
         proc = subprocess.Popen(['git', 'rev-parse', '--short', 'HEAD'],
+                                cwd=os.path.dirname(__file__),
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         stdout, stderr = proc.communicate()
