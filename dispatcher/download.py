@@ -11,6 +11,7 @@ from .log import download_logger
 error_patterns = (
     b'Error reading from remote server',
     b'Bad gateway',
+    b'Bad Gateway',
     b'Cannot process ID list',
     b'server is temporarily unable to service your request',
     b'Service unavailable',
@@ -18,6 +19,8 @@ error_patterns = (
     b'ID list is empty',
     b'Resource temporarily unavailable',
     b'In it there are neither IDs nor accessions',
+    b'Failed to retrieve sequence',
+    b'Failed to understand id',
 )
 
 
