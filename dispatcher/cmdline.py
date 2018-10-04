@@ -1,6 +1,8 @@
 """Command line handling"""
+from antismash_models import AsyncJob
 import os
 
+from .errors import InvalidJobType
 
 def create_commandline(job, conf):
     """Create the command line to run an antiSMASH job
@@ -9,7 +11,25 @@ def create_commandline(job, conf):
     :param conf: RunConfig object with the runtime configuration
     :return: A list of strings with the command line args
     """
-    job_folder = os.path.join(os.sep, 'data', 'antismash', 'upload', job.job_id)
+
+    # For now, default to running antiSMASH 4 jobs if nothing is set
+    if job.jobtype == 'antismash4' or job.jobtype is None:
+        return create_commandline_as4(job, conf)
+    elif job.jobtype == 'antismash5':
+        return create_commandline_as5(job, conf)
+
+    raise InvalidJobType(job.jobtype)
+
+
+def create_commandline_as4(job, conf):
+    """Create the command line to run antiSMASH 4 jobs
+
+    :param job: Job object representing the job to run
+    :param conf: RunConfig object with the runtime configuration
+    :return: A list of strings with the command line args
+    """
+
+    job_folder = _get_job_folder(job)
 
     args = [
         job.filename,
@@ -75,3 +95,55 @@ def create_commandline(job, conf):
         args += ['--genefinding', job.genefinder]
 
     return args
+
+
+def create_commandline_as5(job, conf):
+    """Create the command line to run antiSMASH 5 jobs
+
+    :param job: Job object representing the job to run
+    :param conf: RunConfig object with the runtime configuration
+    :return: A list of strings with the command line args
+    """
+
+    job_folder = _get_job_folder(job)
+
+    args = [
+        job.filename,
+        '--cpus', str(conf.cpus),
+        '--taxon', job.taxon,
+        '--output-dir', job_folder,
+        '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id)),
+        '--debug',  # TODO: read this from the config later
+    ]
+
+    if job.gff3:
+        args.extend(['--genefinding-gff3', os.path.join(os.sep, 'input', job.gff3)])
+
+    # All config that should work for both minimal and regular jobs needs to go above this line
+    if job.minimal:
+        args.append('--minimal')
+        return args
+
+    if job.asf:
+        args.append('--asf')
+
+    if job.clusterhmmer:
+        args.append('--clusterhmmer')
+    if job.pfam2go:
+        if '--custerhmmer' not in args:
+            args.append('--clusterhmmer')
+        args.append('--pfam2go')
+
+    if job.clusterblast:
+        args.append('--cb-general')
+    if job.knownclusterblast:
+        args.append('--cb-knownclusters')
+    if job.subclusterblast:
+        args.append('--cb-subclusters')
+
+    return args
+
+
+def _get_job_folder(job: AsyncJob) -> str:
+    """Get the folder to store the job into inside the container."""
+    return os.path.join(os.sep, 'data', 'antismash', 'upload', job.job_id)

@@ -11,6 +11,7 @@ import time
 
 from .cmdline import create_commandline
 from .download import download
+from .errors import InvalidJobType
 from .mail import send_job_mail, send_error_mail
 
 
@@ -115,10 +116,26 @@ async def run_container(job, db, app):
     await db.lrem('{}:queued'.format(run_conf.name), 1, job.job_id)
     await db.lpush('jobs:running', job.job_id)
 
+    try:
+        cmdline = create_commandline(job, run_conf)
+    except InvalidJobType as err:
+        app.logger.debug("Got invalid job type %s", str(err))
+        job.state = 'failed'
+        job.status = 'failed: Invalid job type'
+        await job.commit()
+
+        await db.lrem('jobs:running', 1, job.job_id)
+        await db.lpush('jobs:completed', job.job_id)
+
+        await update_stats(db, job)
+        await send_error_mail(app, job, [], [], [])
+        return
+
+
     # start a container that will run forever
     container = await docker.containers.create(
         config={
-            'Cmd': create_commandline(job, run_conf),
+            'Cmd': cmdline,
             'Image': run_conf.image,
             'HostConfig': create_host_config(job, run_conf),
             'User': run_conf.uid_string,
