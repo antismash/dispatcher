@@ -45,6 +45,34 @@ def test_create_commandline_minimal_debug(conf, db):
     assert cmdline == expected
 
 
+def test_create_commandline_inclusive(conf, db):
+    job = Job(db, 'bacteria-fake')
+    job.filename = 'fake.gbk'
+    job.inclusive = True
+    job.cf_cdsnr = 1
+    job.cf_npfams = 2
+    job.cf_threshold = 0.3
+
+    expected = [
+        'fake.gbk',
+        '--cpus', '1',
+        '--taxon', 'bacteria',
+        '--outputfolder', '/data/antismash/upload/bacteria-fake',
+        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
+        '--input-type', 'nucl',
+        '--verbose',
+        '--inclusive',
+        '--cf_cdsnr', '1',
+        '--cf_npfams', '2',
+        '--cf_threshold', '0.3',
+        '--limit', '1000',
+        '--genefinding', 'none',
+    ]
+
+    cmdline = create_commandline(job, conf)
+    assert cmdline == expected
+
+
 def test_create_commandline_minimal_gff3(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.fa'
@@ -104,6 +132,7 @@ def test_create_commandline_all_options(conf, db):
         '--knownclusterblast',
         '--subclusterblast',
         '--full-hmmer',
+        '--limit', '1000',
         '--borderpredict',
         '--inclusive',
         '--cf_cdsnr', '1',

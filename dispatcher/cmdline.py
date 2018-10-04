@@ -53,6 +53,7 @@ def create_commandline(job, conf):
 
     if job.full_hmmer:
         args.append('--full-hmmer')
+        args += ['--limit', '1000']
     if job.borderpredict:
         args.append('--borderpredict')
 
@@ -63,6 +64,8 @@ def create_commandline(job, conf):
             '--cf_npfams', str(job.cf_npfams),
             '--cf_threshold', str(job.cf_threshold)
         ]
+        if '--limit' not in args:
+            args += ['--limit', '1000']
 
     if job.all_orfs:
         args.append('--all_orfs')
