@@ -260,6 +260,7 @@ def create_host_config(job, conf):
     binds = [
         "{}:/databases/clusterblast:ro".format(conf.clusterblast_dir),
         "{}:/databases/pfam:ro".format(conf.pfam_dir),
+        "{}:/databases/resfam:ro".format(conf.resfam_dir),
         "{}:/data/antismash/upload".format(conf.workdir),
         "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id)),
     ]
@@ -354,6 +355,7 @@ class RunConfig:
         'pfam_dir',
         'priority_queue',
         'queue',
+        'resfam_dir',
         'run_priority',
         'timeout',
         'workdir',

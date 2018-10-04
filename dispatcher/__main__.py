@@ -45,6 +45,8 @@ def main():
         ASD_CLUSTERBLAST_DIR=dict(cast=str, default='/data/databases/clusterblast'),
         # PFAM database dir
         ASD_PFAM_DIR=dict(cast=str, default='/data/databases/pfam'),
+        # PFAM database dir
+        ASD_RESFAM_DIR=dict(cast=str, default='/data/databases/resfam'),
         # uid/gid for running the container
         ASD_UID_STRING=dict(cast=str, default='{}:{}'.format(os.getuid(), os.getgid())),
         # email password
@@ -111,6 +113,9 @@ def main():
     parser.add_argument('--pfam-dir', dest='pfam_dir',
                         default=env('ASD_PFAM_DIR'),
                         help="PFAM database directory (default: %(default)s).")
+    parser.add_argument('--resfam-dir', dest='resfam_dir',
+                        default=env('ASD_RESFAM_DIR'),
+                        help="Resfam database directory (default: %(default)s).")
     parser.add_argument('--uid-string', dest='uid_string',
                         default=env('ASD_UID_STRING'),
                         help="User ID the container should run as (default: %(default)s)")
