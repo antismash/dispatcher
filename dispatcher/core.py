@@ -130,7 +130,7 @@ async def run_container(job, db, app):
 
     event = asyncio.Future(loop=app.loop)
 
-    task = asyncio.ensure_future(follow(container, job, event))
+    task = asyncio.ensure_future(follow(container, job, event, logger=app.logger))
 
     def timeout_handler():
         asyncio.ensure_future(cancel(container, event), loop=app.loop)
@@ -203,12 +203,13 @@ async def update_stats(db, job):
         await db.hset("jobs:{timestamp}".format(timestamp=ts), job.job_id, job.state)
 
 
-async def follow(container, job, event):
+async def follow(container, job, event, logger):
     """Follow a container log
 
     :param container: a DockerContainer to follow
     :param job: the Job object running on the container
     :param event: the Future the parent task uses to track this run
+    :param logger: A logger class for writing logs
     """
     timestamp = 0
     warnings = set()
@@ -243,10 +244,10 @@ async def follow(container, job, event):
             await asyncio.sleep(5)
         except asyncio.TimeoutError:
             # Docker is dumb and times out after 5 minutes, just retry
-            await asyncio.sleep(5)
-            pass
+            logger.debug("Got a TimeoutError talking to Docker, retrying")
         except (DockerError, KeyboardInterrupt):
             # Most likely the container got killed in the meantime, just exit
+            logger.debug("Got DockerError or KeyboardInterrupt, aborting")
             return
 
 
