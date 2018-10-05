@@ -279,7 +279,7 @@ def create_host_config(job, conf):
         "{}:/databases/pfam:ro".format(conf.pfam_dir),
         "{}:/databases/resfam:ro".format(conf.resfam_dir),
         "{}:/data/antismash/upload".format(conf.workdir),
-        "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id)),
+        "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id, 'input')),
     ]
 
     host_config = dict(Binds=binds)

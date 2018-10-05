@@ -49,7 +49,7 @@ async def download(job, app):
             await job.commit()
             return False
 
-        outdir = os.path.join(conf.workdir, job.job_id)
+        outdir = os.path.join(conf.workdir, job.job_id, 'input')
         os.makedirs(outdir, exist_ok=True)
 
         base_filename = job.download + file_ending
