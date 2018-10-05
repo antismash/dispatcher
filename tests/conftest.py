@@ -15,6 +15,7 @@ def args():
         max_jobs=1,
         name='dave',
         pfam_dir='/pfam',
+        resfam_dir='/resfam',
         priority_queue='vip:line',
         queue="boring:line",
         run_priority=True,

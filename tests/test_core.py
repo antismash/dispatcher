@@ -31,8 +31,9 @@ def test_create_host_config(conf, db):
         "Binds": [
             "/clusterblast:/databases/clusterblast:ro",
             "/pfam:/databases/pfam:ro",
+            "/resfam:/databases/resfam:ro",
             "/workdir:/data/antismash/upload",
-            "/workdir/bacteria-fake:/input:ro"
+            "/workdir/bacteria-fake/input:/input:ro"
         ]
     }
 
