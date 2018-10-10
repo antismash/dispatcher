@@ -1,0 +1,11 @@
+[antismash4]
+image = "antismash4:latest"
+clusterblastdir = "/as4/clusterblast"
+pfamdir = "/as4/pfam"
+resfamdir = "/as4/resfam"
+
+[antismash5]
+image = "antismash5:latest"
+clusterblastdir = "/as5/clusterblast"
+pfamdir = "/as5/pfam"
+resfamdir = "/as5/resfam"

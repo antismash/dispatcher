@@ -23,6 +23,8 @@ def main():
     env = Env(
         # dispatcher name for management
         ASD_NAME=dict(cast=str, default=os.environ.get('HOSTNAME', 'dispatcher')),
+        # Location of the config file
+        ASD_CONFIGFILE=dict(cast=str, default=os.path.join(os.getcwd(), 'asd_config.toml')),
         # Redis database
         ASD_DB=dict(cast=str, default='redis://localhost:6379/0'),
         # Regular queue
@@ -33,20 +35,12 @@ def main():
         ASD_RUN_PRIORITY=dict(cast=bool, default=True),
         # Working directory
         ASD_WORKDIR=dict(cast=str, default=os.path.join(os.getcwd(), 'upload')),
-        # Docker image to use
-        ASD_IMAGE=dict(cast=str, default="antismash/standalone-lite:latest"),
         # Job timeout in seconds, default 1 day (86400 s)
         ASD_TIMEOUT=dict(cast=int, default=86400),
         # CPUs to allocate
         ASD_CPUS=dict(cast=int, default=1),
         # Maximum jobs to run in parallel
         ASD_MAX_JOBS=dict(cast=int, default=5),
-        # ClusterBlast database dir
-        ASD_CLUSTERBLAST_DIR=dict(cast=str, default='/data/databases/clusterblast'),
-        # PFAM database dir
-        ASD_PFAM_DIR=dict(cast=str, default='/data/databases/pfam'),
-        # PFAM database dir
-        ASD_RESFAM_DIR=dict(cast=str, default='/data/databases/resfam'),
         # uid/gid for running the container
         ASD_UID_STRING=dict(cast=str, default='{}:{}'.format(os.getuid(), os.getgid())),
         # email password
@@ -71,6 +65,9 @@ def main():
 
     parser = argparse.ArgumentParser(description='Dispatch antiSMASH containers')
 
+    parser.add_argument('--configfile',
+                        default=env('ASD_CONFIGFILE'),
+                        help="Configuration TOML file to use (default: %(default)s).")
     parser.add_argument('--database', dest='db',
                         default=env('ASD_DB'),
                         help="URI of the database containing the job queue (default: %(default)s).")
@@ -89,9 +86,6 @@ def main():
     parser.add_argument('-w', '--workdir', dest='workdir',
                         default=env('ASD_WORKDIR'),
                         help="Path to working directory containing the uploaded sequences (default: %(default)s).")
-    parser.add_argument('-i', '--image', dest='image',
-                        default=env('ASD_IMAGE'),
-                        help="Docker image to run (default: %(default)s).")
     parser.add_argument('-n', '--name', dest='name',
                         default=env('ASD_NAME'),
                         help="Dispatcher name for management and status tracking (default: %(default)s).")
@@ -107,15 +101,6 @@ def main():
     parser.add_argument('-d', '--debug', dest='debug',
                         action='store_true', default=False,
                         help="Run antiSMASH in debug mode")
-    parser.add_argument('--clusterblast-dir', dest='clusterblast_dir',
-                        default=env('ASD_CLUSTERBLAST_DIR'),
-                        help="ClusterBlast database directory (default: %(default)s).")
-    parser.add_argument('--pfam-dir', dest='pfam_dir',
-                        default=env('ASD_PFAM_DIR'),
-                        help="PFAM database directory (default: %(default)s).")
-    parser.add_argument('--resfam-dir', dest='resfam_dir',
-                        default=env('ASD_RESFAM_DIR'),
-                        help="Resfam database directory (default: %(default)s).")
     parser.add_argument('--uid-string', dest='uid_string',
                         default=env('ASD_UID_STRING'),
                         help="User ID the container should run as (default: %(default)s)")

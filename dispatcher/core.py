@@ -8,6 +8,7 @@ import logging
 from aioredis import RedisError
 import os
 import time
+import toml
 
 from .cmdline import create_commandline
 from .download import download
@@ -131,16 +132,17 @@ async def run_container(job, db, app):
         await send_error_mail(app, job, [], [], [])
         return
 
+    config = {
+        'Cmd': cmdline,
+        'Image': run_conf.jobtype_config[job.jobtype]['image'],
+        'HostConfig': create_host_config(job, run_conf),
+        'User': run_conf.uid_string,
+    }
+
+    app.logger.debug("Starting container using %s", config)
 
     # start a container that will run forever
-    container = await docker.containers.create(
-        config={
-            'Cmd': cmdline,
-            'Image': run_conf.image,
-            'HostConfig': create_host_config(job, run_conf),
-            'User': run_conf.uid_string,
-        }
-    )
+    container = await docker.containers.create(config=config)
     await container.start()
     app.logger.debug("Started %s", container._id[:8])
     containers[container._id] = (container, job)
@@ -274,10 +276,11 @@ def create_host_config(job, conf):
     :param conf: A RunConfig instance with all runtime-related info
     :return: A dictionary representing a Docker API HostConfig
     """
+    job_conf = conf.jobtype_config[job.jobtype]
     binds = [
-        "{}:/databases/clusterblast:ro".format(conf.clusterblast_dir),
-        "{}:/databases/pfam:ro".format(conf.pfam_dir),
-        "{}:/databases/resfam:ro".format(conf.resfam_dir),
+        "{}:/databases/clusterblast:ro".format(job_conf['clusterblastdir']),
+        "{}:/databases/pfam:ro".format(job_conf['pfamdir']),
+        "{}:/databases/resfam:ro".format(job_conf['resfamdir']),
         "{}:/data/antismash/upload".format(conf.workdir),
         "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id, 'input')),
     ]
@@ -362,21 +365,19 @@ async def manage(app):
 class RunConfig:
     """Container for runtime-related configuration"""
     __slots__ = (
-        'clusterblast_dir',
+        'configfile',
         'cpus',
         'debug',
         'entrez_url',
-        'image',
         'max_jobs',
         'name',
-        'pfam_dir',
         'priority_queue',
         'queue',
-        'resfam_dir',
         'run_priority',
         'timeout',
         'workdir',
         'uid_string',
+        '_jobtype_config',
         '_running_jobs',
     )
 
@@ -390,9 +391,15 @@ class RunConfig:
         self.entrez_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
         self._running_jobs = 0
 
+        self._jobtype_config = toml.load(self.configfile)
+
     @property
     def running_jobs(self):
         return self._running_jobs
+
+    @property
+    def jobtype_config(self):
+        return self._jobtype_config
 
     def want_more_jobs(self):
         """Check if less than max_jobs are running"""

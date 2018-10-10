@@ -17,6 +17,7 @@ install_requires = [
     'aiofiles',
     'antismash_models >= 0.1.10',
     'aio-standalone',
+    'toml',
 ]
 
 

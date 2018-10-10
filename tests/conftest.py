@@ -1,5 +1,6 @@
 from argparse import Namespace
 import mockaioredis
+import os
 import pytest
 from dispatcher.core import RunConfig
 
@@ -7,15 +8,12 @@ from dispatcher.core import RunConfig
 @pytest.fixture
 def args():
     args = Namespace(
-        clusterblast_dir='/clusterblast',
+        configfile=os.path.join(os.path.dirname(__file__), 'test.toml'),
         cpus=1,
         debug=False,
         entrez_url=None,
-        image='fake/image:latest',
         max_jobs=1,
         name='dave',
-        pfam_dir='/pfam',
-        resfam_dir='/resfam',
         priority_queue='vip:line',
         queue="boring:line",
         run_priority=True,
