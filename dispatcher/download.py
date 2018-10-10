@@ -74,7 +74,7 @@ async def download(job, app):
                             job.status = "Failed to download file with id {} from NCBI: {}".format(job.download, pattern)
                             break
                     await fh.write(chunk)
-        except aiohttp.client_exceptions.ClientConnectorError as err:
+        except (aiohttp.client_exceptions.ClientConnectorError, aiohttp.client_exceptions.ClientPayloadError) as err:
             job.state = 'failed'
             job.status = "Failed to download file with id {} from NCBI: {}".format(job.download, err)
 
