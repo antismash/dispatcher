@@ -11,7 +11,6 @@ import time
 import toml
 
 from .cmdline import create_commandline
-from .download import download
 from .errors import InvalidJobType
 from .mail import send_job_mail, send_error_mail
 
@@ -96,18 +95,6 @@ async def run_container(job, db, app):
     timeout_tasks = app['timeout_tasks']
     containers = app['containers']
     run_conf = app['run_conf']
-
-    # TODO: put download jobs in a separate queue, handle them in a separate task?
-    if job.download:
-        try:
-            ret = await download(job, app)
-        except asyncio.TimeoutError:
-            ret = None
-        if not ret:
-            job.state = 'failed'
-            job.status = 'failed: Downloading from NCBI failed.'
-            await job.commit()
-            return
 
     app.logger.debug("Dispatching job %s", job)
     job.state = 'running'

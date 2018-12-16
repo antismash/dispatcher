@@ -3,7 +3,6 @@
 import logging
 
 core_logger = logging.getLogger('dispatcher.core')
-download_logger = logging.getLogger('dispatcher.download')
 
 
 def setup_logging():
