@@ -130,7 +130,7 @@ def create_commandline_as5(job, conf):
     if job.clusterhmmer:
         args.append('--clusterhmmer')
     if job.pfam2go:
-        if '--custerhmmer' not in args:
+        if '--clusterhmmer' not in args:
             args.append('--clusterhmmer')
         args.append('--pfam2go')
 

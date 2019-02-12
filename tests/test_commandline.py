@@ -218,3 +218,25 @@ def test_create_commandline5_all_options(conf, db):
 
     cmdline = create_commandline(job, conf)
     assert cmdline == expected
+
+
+def test_create_commandline5_pfam2go_adds_clusterhmmer(conf, db):
+    job = Job(db, 'bacteria-fake')
+    job.jobtype = 'antismash5'
+    job.filename = 'fake.gbk'
+    job.pfam2go = True
+
+    expected = [
+        'fake.gbk',
+        '--cpus', '1',
+        '--taxon', 'bacteria',
+        '--output-dir', '/data/antismash/upload/bacteria-fake',
+        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
+        '--debug',
+        '--clusterhmmer',
+        '--pfam2go',
+        '--genefinding-tool', 'none',
+    ]
+
+    cmdline = create_commandline(job, conf)
+    assert cmdline == expected
