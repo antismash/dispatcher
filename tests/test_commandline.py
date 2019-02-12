@@ -24,6 +24,26 @@ def test_create_commandline4_minimal(conf, db):
     assert cmdline == expected
 
 
+def test_create_commandline5_minimal(conf, db):
+    job = Job(db, 'bacteria-fake')
+    job.jobtype = 'antismash5'
+    job.filename = 'fake.gbk'
+    job.minimal = True
+
+    expected = [
+        'fake.gbk',
+        '--cpus', '1',
+        '--taxon', 'bacteria',
+        '--output-dir', '/data/antismash/upload/bacteria-fake',
+        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
+        '--debug',
+        '--minimal'
+    ]
+
+    cmdline = create_commandline(job, conf)
+    assert cmdline == expected
+
+
 def test_create_commandline4_minimal_debug(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.gbk'
@@ -95,6 +115,28 @@ def test_create_commandline4_minimal_gff3(conf, db):
     assert cmdline == expected
 
 
+def test_create_commandline5_minimal_gff3(conf, db):
+    job = Job(db, 'bacteria-fake')
+    job.jobtype = 'antismash5'
+    job.filename = 'fake.fa'
+    job.gff3 = 'fake.gff'
+    job.minimal = True
+
+    expected = [
+        'fake.fa',
+        '--cpus', '1',
+        '--taxon', 'bacteria',
+        '--output-dir', '/data/antismash/upload/bacteria-fake',
+        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
+        '--debug',
+        '--genefinding-gff3', '/input/fake.gff',
+        '--minimal'
+    ]
+
+    cmdline = create_commandline(job, conf)
+    assert cmdline == expected
+
+
 def test_create_commandline4_all_options(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.gbk'
@@ -140,6 +182,38 @@ def test_create_commandline4_all_options(conf, db):
         '--cf_threshold', '0.3',
         '--all_orfs',
         '--genefinding', 'prodigal'
+    ]
+
+    cmdline = create_commandline(job, conf)
+    assert cmdline == expected
+
+
+def test_create_commandline5_all_options(conf, db):
+    job = Job(db, 'bacteria-fake')
+    job.jobtype = 'antismash5'
+    job.filename = 'fake.gbk'
+    job.asf = True
+    job.clusterhmmer = True
+    job.pfam2go = True
+    job.clusterblast = True
+    job.knownclusterblast = True
+    job.subclusterblast = True
+    job.genefinding = 'none'
+
+    expected = [
+        'fake.gbk',
+        '--cpus', '1',
+        '--taxon', 'bacteria',
+        '--output-dir', '/data/antismash/upload/bacteria-fake',
+        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
+        '--debug',
+        '--asf',
+        '--clusterhmmer',
+        '--pfam2go',
+        '--cb-general',
+        '--cb-knownclusters',
+        '--cb-subclusters',
+        '--genefinding-tool', 'none',
     ]
 
     cmdline = create_commandline(job, conf)
