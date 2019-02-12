@@ -199,6 +199,7 @@ def test_create_commandline5_all_options(conf, db):
     job.knownclusterblast = True
     job.subclusterblast = True
     job.genefinding = 'none'
+    job.cassis = True
 
     expected = [
         'fake.gbk',
@@ -214,6 +215,7 @@ def test_create_commandline5_all_options(conf, db):
         '--cb-knownclusters',
         '--cb-subclusters',
         '--genefinding-tool', 'none',
+        '--cassis',
     ]
 
     cmdline = create_commandline(job, conf)
