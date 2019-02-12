@@ -4,7 +4,7 @@ from antismash_models import AsyncJob as Job
 from dispatcher.cmdline import create_commandline
 
 
-def test_create_commandline_minimal(conf, db):
+def test_create_commandline4_minimal(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.gbk'
     job.minimal = True
@@ -24,7 +24,7 @@ def test_create_commandline_minimal(conf, db):
     assert cmdline == expected
 
 
-def test_create_commandline_minimal_debug(conf, db):
+def test_create_commandline4_minimal_debug(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.gbk'
     job.minimal = True
@@ -45,7 +45,7 @@ def test_create_commandline_minimal_debug(conf, db):
     assert cmdline == expected
 
 
-def test_create_commandline_inclusive(conf, db):
+def test_create_commandline4_inclusive(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.gbk'
     job.inclusive = True
@@ -73,7 +73,7 @@ def test_create_commandline_inclusive(conf, db):
     assert cmdline == expected
 
 
-def test_create_commandline_minimal_gff3(conf, db):
+def test_create_commandline4_minimal_gff3(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.fa'
     job.minimal = True
@@ -95,7 +95,7 @@ def test_create_commandline_minimal_gff3(conf, db):
     assert cmdline == expected
 
 
-def test_create_commandline_all_options(conf, db):
+def test_create_commandline4_all_options(conf, db):
     job = Job(db, 'bacteria-fake')
     job.filename = 'fake.gbk'
     job.smcogs = True
