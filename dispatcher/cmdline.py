@@ -90,9 +90,9 @@ def create_commandline_as4(job, conf):
     if job.all_orfs:
         args.append('--all_orfs')
 
-    # TODO: mismatch between database name and parameter name, fix in websmash
     if job.genefinder:
-        args += ['--genefinding', job.genefinder]
+        if job.genefinder != 'glimmerhmm':
+            args += ['--genefinding', job.genefinder]
 
     return args
 
