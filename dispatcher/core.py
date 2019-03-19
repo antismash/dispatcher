@@ -13,6 +13,7 @@ import toml
 from .cmdline import create_commandline
 from .errors import InvalidJobType
 from .mail import send_job_mail, send_error_mail
+from .version import version_sync
 
 
 class JobOutcome(Enum):
@@ -387,6 +388,10 @@ class RunConfig:
     @property
     def jobtype_config(self):
         return self._jobtype_config
+
+    @property
+    def version(self):
+        return version_sync()
 
     def want_more_jobs(self):
         """Check if less than max_jobs are running"""

@@ -24,7 +24,7 @@ failure_template = """It produced the following error messages:
 Please contact {c.support} to resolve the issue."""
 
 error_message_template = """The {c.tool} job {j.job_id} has failed.
-Dispatcher: {j.dispatcher}
+Dispatcher: {j.dispatcher}{c.version}
 Input file: {c.base_url}/upload/{j.job_id}/input/{j.filename}
 GFF file: {c.base_url}/upload/{j.job_id}/input/{j.gff3}
 Log file: {c.base_url}/upload/{j.job_id}/{j.job_id}.log
