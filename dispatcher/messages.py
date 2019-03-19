@@ -28,6 +28,7 @@ Dispatcher: {j.dispatcher}{c.version}
 Input file: {c.base_url}/upload/{j.job_id}/input/{j.filename}
 GFF file: {c.base_url}/upload/{j.job_id}/input/{j.gff3}
 Log file: {c.base_url}/upload/{j.job_id}/{j.job_id}.log
+Original ID: {j.original_id}
 User email: {j.email}
 State: {j.state}
 Errors:
