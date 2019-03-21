@@ -9,6 +9,8 @@ from dispatcher.messages import (
     failure_template,
     error_message_template
 )
+from .version import version_sync
+
 
 class EmailConfig:
     """Class collection all email-related configuration"""
@@ -32,6 +34,10 @@ class EmailConfig:
                 self.__setattr__(entry, kwargs.get(entry, False))
                 continue
             self.__setattr__(entry, kwargs.get(entry, None))
+
+    @property
+    def version(self):
+        return version_sync()
 
     @classmethod
     def from_env(cls, env):
