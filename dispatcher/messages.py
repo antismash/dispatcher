@@ -31,6 +31,7 @@ Log file: {c.base_url}/upload/{j.job_id}/{j.job_id}.log
 Original ID: {j.original_id}
 User email: {j.email}
 State: {j.state}
+Handlers: {j.trace}
 Errors:
 {errors}
 
