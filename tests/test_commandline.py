@@ -242,3 +242,25 @@ def test_create_commandline5_pfam2go_adds_clusterhmmer(conf, db):
 
     cmdline = create_commandline(job, conf)
     assert cmdline == expected
+
+
+def test_create_commandline5_cassis_override(conf, db):
+    conf.run_cassis = False
+
+    job = Job(db, 'fungi-fake')
+    job.jobtype = 'antismash5'
+    job.filename = 'fake.gbk'
+    job.cassis = True
+
+    expected = [
+        'fake.gbk',
+        '--cpus', '1',
+        '--taxon', 'fungi',
+        '--output-dir', '/data/antismash/upload/fungi-fake',
+        '--logfile', '/data/antismash/upload/fungi-fake/fungi-fake.log',
+        '--debug',
+        '--genefinding-tool', 'none',
+    ]
+
+    cmdline = create_commandline(job, conf)
+    assert cmdline == expected

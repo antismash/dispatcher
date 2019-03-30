@@ -17,6 +17,7 @@ def args():
         priority_queue='vip:line',
         queue="boring:line",
         run_priority=True,
+        run_cassis=True,
         timeout=300,
         workdir='/workdir',
         uid_string="123:456"
