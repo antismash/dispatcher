@@ -146,7 +146,7 @@ def create_commandline_as5(job, conf):
     else:
         args.extend(['--genefinding-tool', 'none'])
 
-    if job.cassis:
+    if job.cassis and conf.run_cassis:
         args.append('--cassis')
 
     return args

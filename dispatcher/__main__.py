@@ -61,6 +61,8 @@ def main():
         ASD_TOOL_NAME=dict(cast=str, default='antiSMASH'),
         # base URL to use in emails
         ASD_BASE_URL=dict(cast=str, default='https://antismash.secondarymetabolites.org'),
+        # Should CASSIS be run for fungal jobs?
+        ASD_RUN_CASSIS=dict(cast=bool, default=True)
     )
 
     parser = argparse.ArgumentParser(description='Dispatch antiSMASH containers')
@@ -104,9 +106,15 @@ def main():
     parser.add_argument('--uid-string', dest='uid_string',
                         default=env('ASD_UID_STRING'),
                         help="User ID the container should run as (default: %(default)s)")
+    parser.add_argument('--run-cassis', dest='run_cassis',
+                        action='store_true',
+                        help="Enable CASSIS analyses for fungal jobs (default: %(default)s)")
+    parser.add_argument('--no-cassis', dest='run_cassis',
+                        action='store_false',
+                        help="Disable CASSIS analyses for fungal jobs")
     parser.add_argument('-V', '--version', action='version',
                         version=version_sync())
-    parser.set_defaults(run_priority=env('ASD_RUN_PRIORITY'))
+    parser.set_defaults(run_priority=env('ASD_RUN_PRIORITY'), run_cassis=env('ASD_RUN_CASSIS'))
 
     args = parser.parse_args()
     setup_logging()

@@ -361,6 +361,7 @@ class RunConfig:
         'name',
         'priority_queue',
         'queue',
+        'run_cassis',
         'run_priority',
         'timeout',
         'workdir',
