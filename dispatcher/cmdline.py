@@ -127,6 +127,9 @@ def create_commandline_as5(job, conf):
     if job.asf:
         args.append('--asf')
 
+    if job.hmmdetection_strictness:
+        args.extend(['--hmmdetection-strictness', job.hmmdetection_strictness])
+
     if job.clusterhmmer:
         args.append('--clusterhmmer')
     if job.pfam2go:
