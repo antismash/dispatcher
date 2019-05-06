@@ -167,4 +167,6 @@ async def _send_mail(app, message):
         except aiosmtplib.errors.SMTPConnectError:
             tries += 1
             await asyncio.sleep(30)
-
+        except aiosmtplib.errors.SMTPRecipientsRefused:
+            await smtp.quit()
+            break
