@@ -13,7 +13,7 @@ import toml
 from .cmdline import create_commandline
 from .errors import InvalidJobType
 from .mail import send_job_mail, send_error_mail
-from .version import version_sync
+from .version import version_sync, git_version
 
 
 class JobOutcome(Enum):
@@ -324,7 +324,8 @@ async def manage(app):
     """Run the dispatcher management process."""
     db = app['engine']
     run_conf = app['run_conf']
-    control = Control(db, run_conf.name, run_conf.max_jobs)
+    version_hash = await git_version()
+    control = Control(db, run_conf.name, run_conf.max_jobs, version_hash)
     await control.commit()
     while True:
         await control.fetch()
