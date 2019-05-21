@@ -343,6 +343,7 @@ async def manage(app):
             app.logger.debug("Starting an extra task")
             app.start_task(dispatch)
 
+        await control.alive()
         await asyncio.sleep(10)
 
         if run_conf.running_jobs == 0 and not run_conf.want_more_jobs():
