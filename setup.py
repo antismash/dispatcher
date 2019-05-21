@@ -15,7 +15,7 @@ install_requires = [
     'aiosmtplib',
     'envparse',
     'aiofiles',
-    'antismash_models >= 0.1.16',
+    'antismash_models >= 0.1.17',
     'aio-standalone',
     'toml',
 ]
