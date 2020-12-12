@@ -15,7 +15,7 @@ def create_commandline(job, conf):
     # For now, default to running antiSMASH 4 jobs if nothing is set
     if job.jobtype == 'antismash4' or job.jobtype is None:
         return create_commandline_as4(job, conf)
-    elif job.jobtype == 'antismash5':
+    elif job.jobtype in ('antismash5', 'antismash6'):
         return create_commandline_as5(job, conf)
 
     raise InvalidJobType(job.jobtype)
@@ -148,6 +148,22 @@ def create_commandline_as5(job, conf):
         args.extend(['--genefinding-tool', job.genefinding])
     else:
         args.extend(['--genefinding-tool', 'none'])
+
+    if job.smcog_trees:
+        args.append('--smcog-trees')
+
+    if job.rre:
+        args.append('--rre')
+        if job.rre_minlength:
+            args.extend(['--rre-minlength', str(job.rre_minlength)])
+        if job.rre_cutoff:
+            args.extend(['--rre-cutoff', str(job.rre_cutoff)])
+
+    if job.sideload:
+        args.extend(['--sideload', os.path.join(os.sep, 'input', job.sideload)])
+
+    if job.sideload_simple:
+        args.extend(['--sideload-simple', job.sideload_simple])
 
     if job.cassis and conf.run_cassis:
         args.append('--cassis')
