@@ -147,6 +147,9 @@ def create_commandline_as5(job, conf):
     if job.subclusterblast:
         args.append('--cb-subclusters')
 
+    if job.cc_mibig:
+        args.append('--cc-mibig')
+
     if job.genefinding:
         args.extend(['--genefinding-tool', job.genefinding])
     else:
