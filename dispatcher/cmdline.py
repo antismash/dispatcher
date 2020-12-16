@@ -137,6 +137,9 @@ def create_commandline_as5(job, conf):
             args.append('--clusterhmmer')
         args.append('--pfam2go')
 
+    if job.tigrfam:
+        args.append('--tigrfam')
+
     if job.clusterblast:
         args.append('--cb-general')
     if job.knownclusterblast:
