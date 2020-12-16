@@ -26,13 +26,15 @@ def test_run_config(args):
 
 def test_create_host_config(conf, db):
     job = Job(db, 'bacteria-fake')
-    job.jobtype = 'antismash5'
+    job.jobtype = 'antismash6'
 
     expected = {
         "Binds": [
-            "/as5/clusterblast:/databases/clusterblast:ro",
-            "/as5/pfam:/databases/pfam:ro",
-            "/as5/resfam:/databases/resfam:ro",
+            "/as6/clusterblast:/databases/clusterblast:ro",
+            "/as6/clustercompare:/databases/clustercompare:ro",
+            "/as6/pfam:/databases/pfam:ro",
+            "/as6/resfam:/databases/resfam:ro",
+            "/as6/tigrfam:/databases/tigrfam:ro",
             "/workdir:/data/antismash/upload",
             "/workdir/bacteria-fake/input:/input:ro"
         ]

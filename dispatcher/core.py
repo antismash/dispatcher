@@ -267,8 +267,10 @@ def create_host_config(job, conf):
     job_conf = conf.jobtype_config[job.jobtype]
     binds = [
         "{}:/databases/clusterblast:ro".format(job_conf['clusterblastdir']),
+        "{}:/databases/clustercompare:ro".format(job_conf['clustercomparedir']),
         "{}:/databases/pfam:ro".format(job_conf['pfamdir']),
         "{}:/databases/resfam:ro".format(job_conf['resfamdir']),
+        "{}:/databases/tigrfam:ro".format(job_conf['tigrfamdir']),
         "{}:/data/antismash/upload".format(conf.workdir),
         "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id, 'input')),
     ]
