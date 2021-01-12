@@ -360,7 +360,6 @@ class RunConfig:
         'configfile',
         'cpus',
         'debug',
-        'entrez_url',
         'max_jobs',
         'name',
         'priority_queue',
@@ -380,8 +379,6 @@ class RunConfig:
         for i, arg in enumerate(args):
             self.__setattr__(RunConfig.__slots__[i], arg)
 
-        # Unlikely to change, so special case this
-        self.entrez_url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi'
         self._running_jobs = 0
 
         self._jobtype_config = toml.load(self.configfile)
@@ -424,9 +421,6 @@ class RunConfig:
         arg_list = []
         for arg in RunConfig.__slots__:
             if arg.startswith('_'):
-                continue
-            if arg == 'entrez_url':
-                arg_list.append(None)
                 continue
             arg_list.append(args.__getattribute__(arg))
 
