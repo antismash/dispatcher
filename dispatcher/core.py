@@ -1,5 +1,4 @@
 """Core dispatcher logic"""
-from aiodocker.exceptions import DockerError
 from antismash_models import AsyncControl as Control, AsyncJob as Job
 import asyncio
 from datetime import datetime, timedelta
@@ -7,6 +6,7 @@ from enum import Enum
 import logging
 from aioredis import RedisError
 import os
+import subprocess
 import time
 import toml
 
@@ -85,15 +85,13 @@ async def dispatch(app):
 
 
 async def run_container(job, db, app):
-    """Run a docker container for the given job
+    """Run a container for the given job
 
     :param job: A Job object representing the job to run
     :param db: A Redis database connection
     :param app: The app object with all the central config values
     :return:
     """
-    docker = app['docker']
-    timeout_tasks = app['timeout_tasks']
     containers = app['containers']
     run_conf = app['run_conf']
 
@@ -106,7 +104,7 @@ async def run_container(job, db, app):
     await db.lpush('jobs:running', job.job_id)
 
     try:
-        cmdline = create_commandline(job, run_conf)
+        as_cmdline = create_commandline(job, run_conf)
     except InvalidJobType as err:
         app.logger.debug("Got invalid job type %s", str(err))
         job.state = 'failed'
@@ -120,41 +118,30 @@ async def run_container(job, db, app):
         await send_error_mail(app, job, [], [], [])
         return
 
-    config = {
-        'Cmd': cmdline,
-        'Image': run_conf.jobtype_config[job.jobtype]['image'],
-        'HostConfig': create_host_config(job, run_conf),
-        'User': run_conf.uid_string,
-    }
+    cmdline = create_podman_command(job, run_conf, as_cmdline)
+    app.logger.debug("Starting container using %s", cmdline)
 
-    app.logger.debug("Starting container using %s", config)
+    event = asyncio.Future()
 
-    # start a container that will run forever
-    container = await docker.containers.create(config=config)
-    await container.start()
-    app.logger.debug("Started %s", container._id[:8])
-    containers[container._id] = (container, job)
-
-    event = asyncio.Future(loop=app.loop)
-
-    task = asyncio.ensure_future(follow(container, job, event, logger=app.logger))
+    proc = await asyncio.create_subprocess_exec(*cmdline, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    containers[job.job_id] = job
 
     def timeout_handler():
-        asyncio.ensure_future(cancel(container, event), loop=app.loop)
+        asyncio.ensure_future(cancel(app, event, job.job_id))
 
     timeout = app.loop.call_later(run_conf.timeout, timeout_handler)
-    timeout_tasks[container._id] = timeout
+    task = asyncio.ensure_future(follow(app, proc, job, event))
 
-    res, warnings, errors = await event
+    res, warnings, errors, backtrace = await event
     if res == JobOutcome.SUCCESS:
         timeout.cancel()
         job.state = 'done'
         job.status = 'done'
+        del containers[job.job_id]
     elif res == JobOutcome.FAILURE:
         timeout.cancel()
         job.state = 'failed'
 
-        backtrace = [l.strip() for l in await container.log(stderr=True, tail=50)]
         await send_error_mail(app, job, warnings, errors, backtrace)
 
         if not errors:
@@ -162,14 +149,13 @@ async def run_container(job, db, app):
 
         error_lines = '\n'.join(errors)
         job.status = 'failed: Job returned errors: \n{}'.format(error_lines)
-
+        del containers[job.job_id]
     else:
         task.cancel()
         job.state = 'failed'
         job.status = 'failed: Runtime exceeded'
         await send_error_mail(app, job, warnings, errors, [])
 
-    del timeout_tasks[container._id]
 
     await job.commit()
 
@@ -177,16 +163,6 @@ async def run_container(job, db, app):
     await db.lpush('jobs:completed', job.job_id)
 
     await update_stats(db, job)
-
-    app.logger.debug('Done with %s', container._id[:8])
-
-    try:
-        await container.delete(force=True)
-        del containers[container._id]
-    except (asyncio.TimeoutError, DockerError):
-        # This is awkward, let's just keep the container in the list and our
-        # on-shutdown cleanup should take care of it.
-        pass
 
     await send_job_mail(app, job, warnings, errors)
 
@@ -210,108 +186,110 @@ async def update_stats(db, job):
         await db.hset("jobs:{timestamp}".format(timestamp=ts), job.job_id, job.state)
 
 
-async def follow(container, job, event, logger):
+async def follow(app, proc, job, event):
     """Follow a container log
 
-    :param container: a DockerContainer to follow
+    :param app: app object
+    :param proc: Process object of the running podman process
     :param job: the Job object running on the container
     :param event: the Future the parent task uses to track this run
-    :param logger: A logger class for writing logs
     """
-    timestamp = 0
-    warnings = set()
-    errors = set()
+    warnings = []
+    errors = []
+    backtrace = []
 
-    def order_logs(logs):
-        return sorted(list(logs))
+    line = await proc.stdout.readline()
+    while line:
+        line = line.strip()
+        line = line.decode("utf-8")
 
-    while True:
-        try:
-            new_timestamp = int(time.time())
-            log = await container.log(stderr=True, stdout=True, since=timestamp)
-            timestamp = new_timestamp
-            for line in log:
-                line = line.strip()
+        if line.startswith('INFO'):
+            job.status = 'running: {}'.format(line[25:])
+            job.changed()
+            await job.commit()
+        elif line.startswith('WARNING'):
+            warnings.append(line)
+        elif line.startswith('ERROR'):
+            errors.append(line)
 
-                if line.startswith('INFO'):
-                    job.status = 'running: {}'.format(line[25:])
-                    job.changed()
-                    await job.commit()
-                elif line.startswith('WARNING'):
-                    warnings.add(line)
-                elif line.startswith('ERROR'):
-                    errors.add(line)
+        backtrace.append(line)
+        if len(backtrace) > 50:
+            backtrace.pop(0)
 
-                if line.endswith('SUCCESS'):
-                    event.set_result((JobOutcome.SUCCESS, order_logs(warnings), order_logs(errors)))
-                    return
-                elif line.endswith('FAILED'):
-                    event.set_result((JobOutcome.FAILURE, order_logs(warnings), order_logs(errors)))
-                    return
-            await asyncio.sleep(5)
-        except asyncio.TimeoutError:
-            # Docker is dumb and times out after 5 minutes, just retry
-            logger.debug("Got a TimeoutError talking to Docker, retrying")
-        except (DockerError, KeyboardInterrupt):
-            # Most likely the container got killed in the meantime, just exit
-            logger.debug("Got DockerError or KeyboardInterrupt, aborting")
+        if line.endswith('SUCCESS'):
+            event.set_result((JobOutcome.SUCCESS, warnings, errors, backtrace))
             return
+        elif line.endswith('FAILED'):
+            event.set_result((JobOutcome.FAILURE, warnings, errors, backtrace))
+            return
+        line = await proc.stdout.readline()
 
 
-def create_host_config(job, conf):
-    """Create the HostConfig dict required by the docker API
+def create_podman_command(job, conf, as_cmdline):
+    """Create the podman command to launch the container
 
+
+    :param job: An antiSMASH Job object of the job to run
     :param conf: A RunConfig instance with all runtime-related info
-    :return: A dictionary representing a Docker API HostConfig
+    :param as_cmdline: A list of all the parameters that should be passed to antiSMASH
+    :return: A list of podman command line parameters
     """
     job_conf = conf.jobtype_config[job.jobtype]
-    binds = [
-        "{}:/databases/clusterblast:ro".format(job_conf['clusterblastdir']),
-        "{}:/databases/clustercompare:ro".format(job_conf['clustercomparedir']),
-        "{}:/databases/pfam:ro".format(job_conf['pfamdir']),
-        "{}:/databases/resfam:ro".format(job_conf['resfamdir']),
-        "{}:/databases/tigrfam:ro".format(job_conf['tigrfamdir']),
-        "{}:/data/antismash/upload".format(conf.workdir),
-        "{}:/input:ro".format(os.path.join(conf.workdir, job.job_id, 'input')),
+    mounts = [
+        f"{job_conf['clusterblastdir']}:/databases/clusterblast:ro",
+        f"{job_conf['clustercomparedir']}:/databases/clustercompare:ro",
+        f"{job_conf['pfamdir']}:/databases/pfam:ro",
+        f"{job_conf['resfamdir']}:/databases/resfam:ro",
+        f"{job_conf['tigrfamdir']}:/databases/tigrfam:ro",
+        f"{conf.workdir}:/data/antismash/upload",
+        f"{os.path.join(conf.workdir, job.job_id, 'input')}:/input:ro",
     ]
 
-    host_config = dict(Binds=binds)
-    return host_config
+    cmdline = [ "podman", "run", "--detach=false", "--rm" ]
+
+    for mount in mounts:
+        cmdline.extend(["--volume", mount])
+
+    cmdline.extend(["--name", job.job_id])
+
+    cmdline.append(f"{job_conf['image']}")
+
+    cmdline.extend(as_cmdline)
+
+    return cmdline
 
 
-async def cancel(container, event):
+async def cancel(app, event, container_name):
     """Kill the container once the timeout has expired
 
-    :param container: Container object to kill
-    :param event: Future tracking this container run
+    :param app: app object
+    :param event: Future the parent task uses to track the job
+    :param container_name: Container object to kill
     """
-    logging.debug("Timeout expired, killing container %s", container._id[:8])
+    logging.debug("Timeout expired, killing container %s", container_name)
 
-    try:
-        await container.kill()
-        event.set_result((JobOutcome.TIMEOUT, [], ['Runtime exceeded']))
-    except DockerError:
-        pass
+    proc = await asyncio.create_subprocess_exec("podman", "kill", container_name, stdout=subprocess.DEVNULL)
+    await proc.communicate()
+    del app['containers'][container_name]
+    event.set_result((JobOutcome.TIMEOUT, [], ["Runtime exceeded"], []))
 
 
 async def init_vars(app):
     """Initialise the internal variables used"""
     app['containers'] = {}
-    app['timeout_tasks'] = {}
 
 
 async def teardown_containers(app):
-    """Tear down all remaining docker containers"""
+    """Tear down all remaining containers"""
     containers = app['containers']
     db = await app['engine']
 
     while len(containers):
         app.logger.debug("cleaning containers")
-        _, (container, job) = containers.popitem()
-        try:
-            await container.delete(force=True)
-        except DockerError:
-            pass
+        container_name, job = containers.popitem()
+
+        proc = await asyncio.create_subprocess_exec("podman", "kill", container_name, stdout=subprocess.DEVNULL)
+        await proc.communicate()
 
         if job.state not in ('done', 'failed'):
             job.state = 'failed'
