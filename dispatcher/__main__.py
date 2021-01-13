@@ -11,7 +11,6 @@ from .core import (
     RunConfig,
 )
 from .database import DatabaseConfig, init_db, close_db
-from .docker import init_docker, close_docker
 from .log import setup_logging, core_logger
 from .mail import EmailConfig, init_mail, close_mail
 from .version import version_sync
@@ -131,14 +130,12 @@ def main():
     app['mail_conf'] = mail_conf
 
     app.on_startup.append(init_db)
-    app.on_startup.append(init_docker)
     app.on_startup.append(init_mail)
     app.on_startup.append(init_vars)
 
     # The order here is important
     app.on_cleanup.append(teardown_containers)
     app.on_cleanup.append(close_mail)
-    app.on_cleanup.append(close_docker)
     app.on_cleanup.append(close_db)
 
     for i in range(args.max_jobs):

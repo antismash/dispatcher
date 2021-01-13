@@ -11,7 +11,6 @@ if os.path.exists('README.rst'):
 install_requires = [
     'aioredis >= 1.0.0',
     'aiohttp',
-    'aiodocker',
     'aiosmtplib',
     'envparse',
     'aiofiles',
