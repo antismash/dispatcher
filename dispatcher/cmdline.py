@@ -29,7 +29,7 @@ def create_commandline_as4(job, conf):
     :return: A list of strings with the command line args
     """
 
-    job_folder = _get_job_folder(job)
+    job_folder = _get_job_folder(job, conf)
 
     args = [
         job.filename,
@@ -105,7 +105,7 @@ def create_commandline_as5(job, conf):
     :return: A list of strings with the command line args
     """
 
-    job_folder = _get_job_folder(job)
+    job_folder = _get_job_folder(job, conf)
 
     args = [
         job.filename,
@@ -177,6 +177,6 @@ def create_commandline_as5(job, conf):
     return args
 
 
-def _get_job_folder(job: AsyncJob) -> str:
+def _get_job_folder(job: AsyncJob, conf) -> str:
     """Get the folder to store the job into inside the container."""
-    return os.path.join(os.sep, 'data', 'antismash', 'upload', job.job_id)
+    return os.path.join(conf.workdir, job.job_id)
