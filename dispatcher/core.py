@@ -105,6 +105,7 @@ async def run_container(job, db, app):
 
     try:
         as_cmdline = create_commandline(job, run_conf)
+        cmdline = create_podman_command(job, run_conf, as_cmdline)
     except InvalidJobType as err:
         app.logger.debug("Got invalid job type %s", str(err))
         job.state = 'failed'
@@ -118,7 +119,6 @@ async def run_container(job, db, app):
         await send_error_mail(app, job, [], [], [])
         return
 
-    cmdline = create_podman_command(job, run_conf, as_cmdline)
     app.logger.debug("Starting container using %s", cmdline)
 
     event = asyncio.Future()
@@ -234,7 +234,11 @@ def create_podman_command(job, conf, as_cmdline):
     :param as_cmdline: A list of all the parameters that should be passed to antiSMASH
     :return: A list of podman command line parameters
     """
-    job_conf = conf.jobtype_config[job.jobtype]
+    try:
+        job_conf = conf.jobtype_config[job.jobtype]
+    except KeyError as err:
+        raise InvalidJobType(job.jobtype)
+
     mounts = [
         f"{job_conf['clusterblastdir']}:/databases/clusterblast:ro",
         f"{job_conf['clustercomparedir']}:/databases/clustercompare:ro",
@@ -403,4 +407,3 @@ class RunConfig:
             arg_list.append(args.__getattribute__(arg))
 
         return cls(*arg_list)
-
