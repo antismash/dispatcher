@@ -12,93 +12,13 @@ def create_commandline(job, conf):
     :return: A list of strings with the command line args
     """
 
-    # For now, default to running antiSMASH 4 jobs if nothing is set
-    if job.jobtype == 'antismash4' or job.jobtype is None:
-        return create_commandline_as4(job, conf)
-    elif job.jobtype in ('antismash5', 'antismash6'):
-        return create_commandline_as5(job, conf)
+    if job.jobtype in ('antismash6'):
+        return create_commandline_as6(job, conf)
 
     raise InvalidJobType(job.jobtype)
 
-
-def create_commandline_as4(job, conf):
-    """Create the command line to run antiSMASH 4 jobs
-
-    :param job: Job object representing the job to run
-    :param conf: RunConfig object with the runtime configuration
-    :return: A list of strings with the command line args
-    """
-
-    job_folder = _get_job_folder(job)
-
-    args = [
-        job.filename,
-        '--cpus', str(conf.cpus),
-        '--taxon', job.taxon,
-        '--outputfolder', job_folder,
-        '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id)),
-        '--input-type', job.molecule_type,
-    ]
-
-    if conf.debug:
-        args.append('--debug')
-    else:
-        args.append('--verbose')
-
-    if job.gff3:
-        args.extend(['--gff3', os.path.join(os.sep, 'input', job.gff3)])
-
-    # All config that should work for both minimal and regular jobs needs to go above this line
-    if job.minimal:
-        args.append('--minimal')
-        return args
-
-    if job.smcogs:
-        args.append('--smcogs')
-    if job.asf:
-        args.append('--asf')
-    if job.tta:
-        args.append('--tta')
-    if job.cassis:
-        args.append('--cassis')
-    if job.transatpks_da:
-        args.append('--transatpks_da')
-
-    if job.clusterblast:
-        args.append('--clusterblast')
-    if job.knownclusterblast:
-        args.append('--knownclusterblast')
-    if job.subclusterblast:
-        args.append('--subclusterblast')
-
-    if job.full_hmmer:
-        args.append('--full-hmmer')
-        args += ['--limit', '1000']
-    if job.borderpredict:
-        args.append('--borderpredict')
-
-    if job.inclusive:
-        args.append('--inclusive')
-        args += [
-            '--cf_cdsnr', str(job.cf_cdsnr),
-            '--cf_npfams', str(job.cf_npfams),
-            '--cf_threshold', str(job.cf_threshold)
-        ]
-        if '--limit' not in args:
-            args += ['--limit', '1000']
-
-    if job.all_orfs:
-        args.append('--all_orfs')
-
-    if job.genefinder:
-        if job.genefinder != 'glimmerhmm':
-            args += ['--genefinding', job.genefinder]
-
-    return args
-
-
-def create_commandline_as5(job, conf):
-    """Create the command line to run antiSMASH 5 jobs
+def create_commandline_as6(job, conf):
+    """Create the command line to run antiSMASH 6 jobs
 
     :param job: Job object representing the job to run
     :param conf: RunConfig object with the runtime configuration
