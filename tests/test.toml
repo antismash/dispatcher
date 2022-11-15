@@ -1,7 +1,3 @@
 [antismash6]
-image = "antismash6:latest"
-clusterblastdir = "/as6/clusterblast"
-clustercomparedir = "/as6/clustercompare"
-pfamdir = "/as6/pfam"
-resfamdir = "/as6/resfam"
-tigrfamdir = "/as6/tigrfam"
+image = "antismash7:latest"
+databases = "/as7"
