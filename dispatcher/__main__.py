@@ -38,6 +38,8 @@ def main():
         ASD_TIMEOUT=dict(cast=int, default=86400),
         # CPUs to allocate
         ASD_CPUS=dict(cast=int, default=1),
+        # Contig number to limit antiSMASH runs to
+        ASD_CONTIG_LIMIT=dict(cast=int, default=1000),
         # Maximum jobs to run in parallel
         ASD_MAX_JOBS=dict(cast=int, default=5),
         # uid/gid for running the container
@@ -96,6 +98,9 @@ def main():
     parser.add_argument('-c', '--cpus', dest='cpus',
                         default=env('ASD_CPUS'), type=int,
                         help="CPUs used per antiSMASH job (default: %(default)s).")
+    parser.add_argument('-l', '--limit', dest="limit",
+                        default=env("ASD_CONTIG_LIMIT"), type=int,
+                        help="Contig limit to pass to antiSMASH jobs (default: %(default)s).")
     parser.add_argument('-t', '--timeout', dest="timeout",
                         default=env('ASD_TIMEOUT'), type=int,
                         help="Timeout in seconds, (default: %(default)s).")

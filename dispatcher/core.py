@@ -340,6 +340,7 @@ class RunConfig:
         'configfile',
         'cpus',
         'debug',
+        'limit',
         'max_jobs',
         'name',
         'priority_queue',

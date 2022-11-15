@@ -34,6 +34,7 @@ def create_commandline_as6(job, conf):
         '--output-dir', job_folder,
         '--logfile', os.path.join(job_folder, '{}.log'.format(job.job_id)),
         '--debug',  # TODO: read this from the config later
+        '--limit', str(conf.limit),
     ]
 
     if job.gff3:

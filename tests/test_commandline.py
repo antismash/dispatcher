@@ -17,6 +17,7 @@ def test_create_commandline6_minimal(conf, db):
         '--output-dir', '/data/antismash/upload/bacteria-fake',
         '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
         '--debug',
+        '--limit', '1000',
         '--minimal'
     ]
 
@@ -38,6 +39,7 @@ def test_create_commandline6_minimal_gff3(conf, db):
         '--output-dir', '/data/antismash/upload/bacteria-fake',
         '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
         '--debug',
+        '--limit', '1000',
         '--genefinding-gff3', '/input/fake.gff',
         '--minimal'
     ]
@@ -66,6 +68,7 @@ def test_create_commandline6_all_options(conf, db):
         '--output-dir', '/data/antismash/upload/bacteria-fake',
         '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
         '--debug',
+        '--limit', '1000',
         '--asf',
         '--clusterhmmer',
         '--pfam2go',
@@ -93,6 +96,7 @@ def test_create_commandline6_pfam2go_adds_clusterhmmer(conf, db):
         '--output-dir', '/data/antismash/upload/bacteria-fake',
         '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
         '--debug',
+        '--limit', '1000',
         '--clusterhmmer',
         '--pfam2go',
         '--genefinding-tool', 'none',
@@ -117,6 +121,7 @@ def test_create_commandline6_cassis_override(conf, db):
         '--output-dir', '/data/antismash/upload/fungi-fake',
         '--logfile', '/data/antismash/upload/fungi-fake/fungi-fake.log',
         '--debug',
+        '--limit', '1000',
         '--genefinding-tool', 'none',
     ]
 

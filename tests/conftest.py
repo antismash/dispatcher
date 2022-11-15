@@ -12,6 +12,7 @@ def args():
         cpus=1,
         debug=False,
         entrez_url=None,
+        limit=1000,
         max_jobs=1,
         name='dave',
         priority_queue='vip:line',
