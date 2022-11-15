@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime, timedelta
 from enum import Enum
 import logging
-from aioredis import RedisError
+from redis import RedisError
 import os
 import subprocess
 import time

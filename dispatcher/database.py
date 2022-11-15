@@ -1,18 +1,16 @@
 """Database connectivity"""
 
-import aioredis
+import redis.asyncio as redis
 
 
 class DatabaseConfig:
     """Class collecting all the database-related configuraion"""
-    __slots__ = ('host', 'port', 'db', 'min_conns', 'max_conns')
+    __slots__ = ('host', 'port', 'db')
 
-    def __init__(self, host, port, db, min_conns, max_conns):
+    def __init__(self, host, port, db):
         self.host = host
         self.port = port
         self.db = db
-        self.min_conns = min_conns
-        self.max_conns = max_conns
 
     @classmethod
     def from_argparse(cls, args):
@@ -34,10 +32,7 @@ class DatabaseConfig:
 
         host = parts[0]
 
-        min_conns = (args.max_jobs * 2) + 5
-        max_conns = max(35, min_conns * 3)
-
-        return cls(host, port, db, min_conns, max_conns)
+        return cls(host, port, db)
 
 
 async def init_db(app):
@@ -48,8 +43,7 @@ async def init_db(app):
     conf = app['db_conf']
     app.logger.debug("Connecting to redis://%s:%s/%s", conf.host, conf.port, conf.db)
 
-    engine = await aioredis.create_redis_pool((conf.host, conf.port), db=conf.db, encoding='utf-8',
-                                        minsize=conf.min_conns, maxsize=conf.max_conns, loop=app.loop)
+    engine = await redis.Redis(host=conf.host, port=conf.port, db=conf.db, encoding='utf-8', decode_responses=True)
     app['engine'] = engine
 
 
@@ -60,6 +54,4 @@ async def close_db(app):
     """
     engine = app['engine']
     app.logger.debug("Closing redis connection")
-    engine.close()
-    await engine.wait_closed()
-
+    await engine.close()

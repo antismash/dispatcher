@@ -1,5 +1,5 @@
 from argparse import Namespace
-import mockaioredis
+import fakeredis.aioredis as fakeredis
 import os
 import pytest
 from dispatcher.core import RunConfig
@@ -32,4 +32,4 @@ def conf(args):
 
 @pytest.fixture
 def db():
-    return mockaioredis.MockRedis()
+    return fakeredis.FakeRedis()
