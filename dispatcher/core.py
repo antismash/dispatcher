@@ -7,7 +7,6 @@ import logging
 from redis import RedisError
 import os
 import subprocess
-import time
 import toml
 
 from .cmdline import create_commandline
@@ -156,7 +155,6 @@ async def run_container(job, db, app):
         job.status = 'failed: Runtime exceeded'
         await send_error_mail(app, job, warnings, errors, [])
 
-
     await job.commit()
 
     await db.lrem('jobs:running', 1, job.job_id)
@@ -236,7 +234,7 @@ def create_podman_command(job, conf, as_cmdline):
     """
     try:
         job_conf = conf.jobtype_config[job.jobtype]
-    except KeyError as err:
+    except KeyError:
         raise InvalidJobType(job.jobtype)
 
     mounts = [
@@ -249,7 +247,7 @@ def create_podman_command(job, conf, as_cmdline):
         f"{os.path.join(conf.workdir, job.job_id, 'input')}:/input:ro",
     ]
 
-    cmdline = [ "podman", "run", "--detach=false", "--rm" ]
+    cmdline = ["podman", "run", "--detach=false", "--rm"]
 
     for mount in mounts:
         cmdline.extend(["--volume", mount])
