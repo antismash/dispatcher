@@ -1,7 +1,17 @@
 """Test antiSMASH command line generation"""
-from antismash_models import AsyncJob as Job
+from antismash_models import SyncJob as Job
 
 from dispatcher.cmdline import create_commandline
+
+COMMON_EXPECTED_ARGS = [
+        'fake.gbk',
+        '--cpus', '1',
+        '--taxon', 'bacteria',
+        '--output-dir', '/data/antismash/upload/bacteria-fake',
+        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
+        '--debug',
+        '--limit', '1000',
+]
 
 
 def test_create_commandline6_minimal(conf, db):
@@ -10,16 +20,7 @@ def test_create_commandline6_minimal(conf, db):
     job.filename = 'fake.gbk'
     job.minimal = True
 
-    expected = [
-        'fake.gbk',
-        '--cpus', '1',
-        '--taxon', 'bacteria',
-        '--output-dir', '/data/antismash/upload/bacteria-fake',
-        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
-        '--debug',
-        '--limit', '1000',
-        '--minimal'
-    ]
+    expected = COMMON_EXPECTED_ARGS[::] + ["--minimal"]
 
     cmdline = create_commandline(job, conf)
     assert cmdline == expected
@@ -32,14 +33,7 @@ def test_create_commandline6_minimal_gff3(conf, db):
     job.gff3 = 'fake.gff'
     job.minimal = True
 
-    expected = [
-        'fake.fa',
-        '--cpus', '1',
-        '--taxon', 'bacteria',
-        '--output-dir', '/data/antismash/upload/bacteria-fake',
-        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
-        '--debug',
-        '--limit', '1000',
+    expected = ["fake.fa"] + COMMON_EXPECTED_ARGS[1::] + [
         '--genefinding-gff3', '/input/fake.gff',
         '--minimal'
     ]
@@ -61,14 +55,7 @@ def test_create_commandline6_all_options(conf, db):
     job.genefinding = 'none'
     job.cassis = True
 
-    expected = [
-        'fake.gbk',
-        '--cpus', '1',
-        '--taxon', 'bacteria',
-        '--output-dir', '/data/antismash/upload/bacteria-fake',
-        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
-        '--debug',
-        '--limit', '1000',
+    expected = COMMON_EXPECTED_ARGS[::] + [
         '--asf',
         '--clusterhmmer',
         '--pfam2go',
@@ -89,14 +76,7 @@ def test_create_commandline6_pfam2go_adds_clusterhmmer(conf, db):
     job.filename = 'fake.gbk'
     job.pfam2go = True
 
-    expected = [
-        'fake.gbk',
-        '--cpus', '1',
-        '--taxon', 'bacteria',
-        '--output-dir', '/data/antismash/upload/bacteria-fake',
-        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
-        '--debug',
-        '--limit', '1000',
+    expected = COMMON_EXPECTED_ARGS[::] + [
         '--clusterhmmer',
         '--pfam2go',
         '--genefinding-tool', 'none',
@@ -135,14 +115,7 @@ def test_create_commandline7_tbfs(conf, db):
     job.filename = "fake.gbk"
     job.tfbs = True
 
-    expected = [
-        'fake.gbk',
-        '--cpus', '1',
-        '--taxon', 'bacteria',
-        '--output-dir', '/data/antismash/upload/bacteria-fake',
-        '--logfile', '/data/antismash/upload/bacteria-fake/bacteria-fake.log',
-        '--debug',
-        '--limit', '1000',
+    expected = COMMON_EXPECTED_ARGS[::] + [
         '--genefinding-tool', 'none',
         '--tfbs'
     ]
