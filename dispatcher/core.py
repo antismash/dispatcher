@@ -243,7 +243,9 @@ def create_podman_command(job, conf, as_cmdline):
         f"{os.path.join(conf.workdir, job.job_id, 'input')}:/input:ro",
     ]
 
-    cmdline = ["podman", "run", "--detach=false", "--rm"]
+    cmdline = ["podman", "run", "--detach=false"]
+    if not conf.keep:  # type: ignore
+        cmdline.append("--rm")
 
     for mount in mounts:
         cmdline.extend(["--volume", mount])
@@ -336,6 +338,7 @@ class RunConfig:
         'configfile',
         'cpus',
         'debug',
+        'keep',
         'limit',
         'max_jobs',
         'name',

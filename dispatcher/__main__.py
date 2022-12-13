@@ -38,6 +38,8 @@ def main():
         ASD_TIMEOUT=dict(cast=int, default=86400),
         # CPUs to allocate
         ASD_CPUS=dict(cast=int, default=1),
+        # Should finished containers be kept around?
+        ASD_KEEP=dict(cast=bool, default=False),
         # Contig number to limit antiSMASH runs to
         ASD_CONTIG_LIMIT=dict(cast=int, default=1000),
         # Maximum jobs to run in parallel
@@ -63,7 +65,7 @@ def main():
         # base URL to use in emails
         ASD_BASE_URL=dict(cast=str, default='https://antismash.secondarymetabolites.org'),
         # Should CASSIS be run for fungal jobs?
-        ASD_RUN_CASSIS=dict(cast=bool, default=True)
+        ASD_RUN_CASSIS=dict(cast=bool, default=True),
     )
 
     parser = argparse.ArgumentParser(description='Dispatch antiSMASH containers')
@@ -98,6 +100,10 @@ def main():
     parser.add_argument('-c', '--cpus', dest='cpus',
                         default=env('ASD_CPUS'), type=int,
                         help="CPUs used per antiSMASH job (default: %(default)s).")
+    parser.add_argument('-k', '--keep', dest='keep',
+                        action=argparse.BooleanOptionalAction,
+                        default=env("ASD_KEEP"),
+                        help="Should finished containers be kept?")
     parser.add_argument('-l', '--limit', dest="limit",
                         default=env("ASD_CONTIG_LIMIT"), type=int,
                         help="Contig limit to pass to antiSMASH jobs (default: %(default)s).")
@@ -152,4 +158,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
