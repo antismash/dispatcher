@@ -136,6 +136,7 @@ async def run_container(job: Job, db: Redis, app: StandaloneApplication):
     task = asyncio.ensure_future(follow(app, proc, job, event))
 
     res, warnings, errors, backtrace = await event
+    app.logger.debug("process for %s returned: %s", job.job_id, res)
     if res == JobOutcome.SUCCESS:
         timeout.cancel()
         job.state = 'done'
@@ -200,6 +201,8 @@ async def follow(app: StandaloneApplication, proc: Process, job: Job, event: Fut
     errors: list[str] = []
     backtrace: list[str] = []
 
+    app.logger.debug("Starting to follow job %s", job.job_id)
+
     assert proc.stdout
 
     data = await proc.stdout.readline()
@@ -221,9 +224,11 @@ async def follow(app: StandaloneApplication, proc: Process, job: Job, event: Fut
 
         if line.endswith('SUCCESS'):
             event.set_result((JobOutcome.SUCCESS, warnings, errors, backtrace))
+            app.logger.debug("Stop following %s, it's done.", job.job_id)
             return
         elif line.endswith('FAILED'):
             event.set_result((JobOutcome.FAILURE, warnings, errors, backtrace))
+            app.logger.debug("Stop following %s, it failed.", job.job_id)
             return
         data = await proc.stdout.readline()
 
@@ -271,7 +276,7 @@ async def cancel(app: StandaloneApplication, event: Future, container_name: str)
     :param event: Future the parent task uses to track the job
     :param container_name: Container object to kill
     """
-    logging.debug("Timeout expired, killing container %s", container_name)
+    app.logger.debug("Timeout expired, killing container %s", container_name)
 
     proc = await asyncio.create_subprocess_exec("podman", "kill", container_name, stdout=subprocess.DEVNULL)
     await proc.communicate()
