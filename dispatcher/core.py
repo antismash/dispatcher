@@ -1,12 +1,16 @@
 """Core dispatcher logic"""
-from antismash_models import AsyncControl as Control, AsyncJob as Job
 import asyncio
+from asyncio import Future
+from asyncio.subprocess import Process
 from datetime import datetime, timedelta
 from enum import Enum
-import logging
-from redis import RedisError
 import os
 import subprocess
+
+from aiostandalone import StandaloneApplication
+from antismash_models import AsyncControl as Control, AsyncJob as Job
+from redis import RedisError
+from redis.asyncio import Redis
 import toml
 
 from .cmdline import create_commandline
@@ -25,7 +29,7 @@ WORKER_MAX_JOBS = 2
 WORKER_MAX_AGE = timedelta(days=1)
 
 
-async def dispatch(app):
+async def dispatch(app: StandaloneApplication):
     """Run the dispatcher main process."""
     db = app['engine']
     run_conf = app['run_conf']
@@ -83,7 +87,7 @@ async def dispatch(app):
             raise SystemExit()
 
 
-async def run_container(job, db, app):
+async def run_container(job: Job, db: Redis, app: StandaloneApplication):
     """Run a container for the given job
 
     :param job: A Job object representing the job to run
@@ -120,9 +124,9 @@ async def run_container(job, db, app):
 
     app.logger.debug("Starting container using %s", cmdline)
 
-    event = asyncio.Future()
+    event: Future = asyncio.Future()
 
-    proc = await asyncio.create_subprocess_exec(*cmdline, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc: Process = await asyncio.create_subprocess_exec(*cmdline, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     containers[job.job_id] = job
 
     def timeout_handler():
@@ -184,7 +188,7 @@ async def update_stats(db, job):
         await db.hset("jobs:{timestamp}".format(timestamp=ts), job.job_id, job.state)
 
 
-async def follow(app, proc, job, event):
+async def follow(app: StandaloneApplication, proc: Process, job: Job, event: Future):
     """Follow a container log
 
     :param app: app object
@@ -192,14 +196,15 @@ async def follow(app, proc, job, event):
     :param job: the Job object running on the container
     :param event: the Future the parent task uses to track this run
     """
-    warnings = []
-    errors = []
-    backtrace = []
+    warnings: list[str] = []
+    errors: list[str] = []
+    backtrace: list[str] = []
 
-    line = await proc.stdout.readline()
-    while line:
-        line = line.strip()
-        line = line.decode("utf-8")
+    assert proc.stdout
+
+    data = await proc.stdout.readline()
+    while data:
+        line = data.decode("utf-8").strip()
 
         if line.startswith('INFO'):
             job.status = 'running: {}'.format(line[25:])
@@ -220,10 +225,10 @@ async def follow(app, proc, job, event):
         elif line.endswith('FAILED'):
             event.set_result((JobOutcome.FAILURE, warnings, errors, backtrace))
             return
-        line = await proc.stdout.readline()
+        data = await proc.stdout.readline()
 
 
-def create_podman_command(job, conf, as_cmdline):
+def create_podman_command(job: Job, conf: "RunConfig", as_cmdline: list[str]) -> list[str]:
     """Create the podman command to launch the container
 
 
@@ -239,8 +244,8 @@ def create_podman_command(job, conf, as_cmdline):
 
     mounts = [
         f"{job_conf['databases']}:/databases:ro",
-        f"{conf.workdir}:/data/antismash/upload",
-        f"{os.path.join(conf.workdir, job.job_id, 'input')}:/input:ro",
+        f"{conf.workdir}:/data/antismash/upload",  # type: ignore  # yes mypy, conf has a workdir
+        f"{os.path.join(conf.workdir, job.job_id, 'input')}:/input:ro",  # type: ignore  # yes mypy, conf has a workdir
     ]
 
     cmdline = ["podman", "run", "--detach=false"]
@@ -259,7 +264,7 @@ def create_podman_command(job, conf, as_cmdline):
     return cmdline
 
 
-async def cancel(app, event, container_name):
+async def cancel(app: StandaloneApplication, event: Future, container_name: str):
     """Kill the container once the timeout has expired
 
     :param app: app object
