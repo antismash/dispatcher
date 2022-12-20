@@ -231,6 +231,7 @@ async def follow(app: StandaloneApplication, proc: Process, job: Job, event: Fut
             app.logger.debug("Stop following %s, it failed.", job.job_id)
             return
         data = await proc.stdout.readline()
+    await asyncio.sleep(1.0)
     app.logger.debug("After follow() loop fell through: exitcode %s, output %s", proc.returncode, backtrace)
     event.set_result((JobOutcome.FAILURE, [],
                      [f"podman returned {proc.returncode}"], backtrace))
