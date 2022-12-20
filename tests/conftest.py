@@ -12,6 +12,7 @@ def args():
         cpus=1,
         debug=False,
         entrez_url=None,
+        keep=False,
         limit=1000,
         max_jobs=1,
         name='dave',
