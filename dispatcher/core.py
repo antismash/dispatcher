@@ -231,11 +231,9 @@ async def follow(app: StandaloneApplication, proc: Process, job: Job, event: Fut
             app.logger.debug("Stop following %s, it failed.", job.job_id)
             return
         data = await proc.stdout.readline()
-    raw_stderr = await proc.stderr.read() if proc.stderr else b""
-    podman_stderr = raw_stderr.decode("utf-8")
-    app.logger.debug("After follow() loop fell through: exitcode %s, stderr %s", proc.returncode, podman_stderr)
+    app.logger.debug("After follow() loop fell through: exitcode %s, output %s", proc.returncode, backtrace)
     event.set_result((JobOutcome.FAILURE, [],
-                     [f"podman returned {proc.returncode}"], podman_stderr.split("\n")))
+                     [f"podman returned {proc.returncode}"], backtrace))
 
 
 def create_podman_command(job: Job, conf: "RunConfig", as_cmdline: list[str]) -> list[str]:
