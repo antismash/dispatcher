@@ -23,11 +23,12 @@ failure_template = """It produced the following error messages:
 
 Please contact {c.support} to resolve the issue."""
 
-error_message_template = """The {c.tool} job {j.job_id} has failed.
+error_message_template = """The {c.tool} job {j.job_id} has failed {status}.
 Dispatcher: {j.dispatcher}-{c.version}
 Input file: {c.base_url}/upload/{j.job_id}/input/{j.filename}
 GFF file: {c.base_url}/upload/{j.job_id}/input/{j.gff3}
 Log file: {c.base_url}/upload/{j.job_id}/{j.job_id}.log
+Side-loaded file: {c.base_url}/upload/{j.job_id}/input/{j.sideload}
 Original ID: {j.original_id}
 User email: {j.email}
 State: {j.state}

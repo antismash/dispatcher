@@ -83,7 +83,7 @@ async def init_mail(app):
         port = 465
         use_tls = True
 
-    smtp = aiosmtplib.SMTP(hostname=conf.host, port=port, use_tls=use_tls, loop=app.loop)
+    smtp = aiosmtplib.SMTP(hostname=conf.host, port=port, use_tls=use_tls)
     app['smtp'] = smtp
 
 
@@ -125,7 +125,7 @@ async def send_job_mail(app, job, warnings, errors):
     await _send_mail(app, message)
 
 
-async def send_error_mail(app, job, warnings, errors, backtrace):
+async def send_error_mail(app, job, warnings, errors, backtrace, status):
     """Send an error report to make debugging easier"""
     mail_conf = app['mail_conf']
     if not mail_conf.enabled:
@@ -134,7 +134,8 @@ async def send_error_mail(app, job, warnings, errors, backtrace):
 
     message_text = error_message_template.format(j=job, c=mail_conf, errors='\n'.join(errors),
                                                  warnings='\n'.join(warnings),
-                                                 backtrace='\n'.join(backtrace))
+                                                 backtrace='\n'.join(backtrace),
+                                                 status=status)
     message = MIMEText(message_text)
     message['From'] = mail_conf.sender
     message['To'] = mail_conf.error

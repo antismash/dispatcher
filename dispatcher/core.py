@@ -23,10 +23,12 @@ class JobOutcome(Enum):
     SUCCESS = 'success'
     FAILURE = 'failure'
     TIMEOUT = 'timeout'
+    INTERNAL_ERROR = "internal_error"
 
 
 WORKER_MAX_JOBS = 2
 WORKER_MAX_AGE = timedelta(days=1)
+CONTROL_UPDATE_SLEEP = 10
 
 
 async def dispatch(app: StandaloneApplication):
@@ -34,7 +36,7 @@ async def dispatch(app: StandaloneApplication):
     db = app['engine']
     run_conf = app['run_conf']
     run_conf.up()
-    MY_QUEUE = '{}:queued'.format(run_conf.name)
+    MY_QUEUE = f"{run_conf.name}:queued"
     counter = 0
     startup_timestamp = datetime.utcnow()
     while True:
@@ -71,6 +73,7 @@ async def dispatch(app: StandaloneApplication):
                 continue
 
             job.dispatcher = run_conf.name
+            job.trace.append(run_conf.name)
             job.state = 'queued'
             job.status = 'queued: {}'.format(run_conf.name)
             await job.commit()
@@ -79,12 +82,12 @@ async def dispatch(app: StandaloneApplication):
 
         except RedisError as exc:
             app.logger.error("Got redis error: %r", exc)
-            raise SystemExit()
+            raise SystemExit() from exc
         except asyncio.CancelledError:
             break
         except Exception as exc:
             app.logger.error("Got unhandled exception %s: '%s'", type(exc), str(exc))
-            raise SystemExit()
+            raise SystemExit() from exc
 
 
 async def run_container(job: Job, db: Redis, app: StandaloneApplication):
@@ -97,13 +100,14 @@ async def run_container(job: Job, db: Redis, app: StandaloneApplication):
     """
     containers = app['containers']
     run_conf = app['run_conf']
+    MY_QUEUE = f"{run_conf.name}:queued"
 
     app.logger.debug("Dispatching job %s", job)
     job.state = 'running'
     job.status = 'running'
     await job.commit()
 
-    await db.lrem('{}:queued'.format(run_conf.name), 1, job.job_id)
+    await db.lrem(MY_QUEUE, 1, job.job_id)
     await db.lpush('jobs:running', job.job_id)
 
     try:
@@ -146,7 +150,7 @@ async def run_container(job: Job, db: Redis, app: StandaloneApplication):
         timeout.cancel()
         job.state = 'failed'
 
-        await send_error_mail(app, job, warnings, errors, backtrace)
+        await send_error_mail(app, job, warnings, errors, backtrace, res.name)
 
         if not errors:
             errors = backtrace
@@ -154,11 +158,27 @@ async def run_container(job: Job, db: Redis, app: StandaloneApplication):
         error_lines = '\n'.join(errors)
         job.status = 'failed: Job returned errors: \n{}'.format(error_lines)
         del containers[job.job_id]
+    elif res == JobOutcome.INTERNAL_ERROR:
+        timeout.cancel()
+        del containers[job.job_id]
+
+        job.state = "queued"
+        job.status = "queued"
+
+        await job.commit()
+        await trigger_shutdown(app)
+
+        await db.lrem("jobs:running", 1, job.job_id)
+        await db.lpush(run_conf.priority_queue, job.job_id)
+
+        await send_error_mail(app, job, warnings, errors, backtrace, res.name)
+        app.logger.debug('Finished job %s with internal error', job)
+        return
     else:
         task.cancel()
         job.state = 'failed'
         job.status = 'failed: Runtime exceeded'
-        await send_error_mail(app, job, warnings, errors, [])
+        await send_error_mail(app, job, warnings, errors, [], res.name)
 
     await job.commit()
 
@@ -233,7 +253,7 @@ async def follow(app: StandaloneApplication, proc: Process, job: Job, event: Fut
         data = await proc.stdout.readline()
     await asyncio.sleep(1.0)
     app.logger.debug("After follow() loop fell through: exitcode %s, output %s", proc.returncode, backtrace)
-    event.set_result((JobOutcome.FAILURE, [],
+    event.set_result((JobOutcome.INTERNAL_ERROR, [],
                      [f"podman returned {proc.returncode}"], backtrace))
 
 
@@ -338,12 +358,24 @@ async def manage(app):
             app.start_task(dispatch)
 
         await control.alive()
-        await asyncio.sleep(10)
+        await asyncio.sleep(CONTROL_UPDATE_SLEEP)
 
         if run_conf.running_jobs == 0 and not run_conf.want_more_jobs():
             break
 
     await control.delete()
+
+
+async def trigger_shutdown(app: StandaloneApplication):
+    """Trigger a dispatcher shutdown"""
+    db = app['engine']
+    run_conf = app['run_conf']
+    version_hash = await git_version()
+    control = Control(db, run_conf.name, run_conf.max_jobs, version_hash)
+    await control.fetch()
+    control.stop_scheduled = True
+    await control.commit()
+    await asyncio.sleep(CONTROL_UPDATE_SLEEP + 3)
 
 
 class RunConfig:
