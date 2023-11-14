@@ -2,7 +2,7 @@
 from antismash_models import AsyncJob
 import os
 
-from .errors import InvalidJobType
+from dispatcher.errors import InvalidJobType
 
 
 def create_commandline(job, conf) -> list[str]:
@@ -90,8 +90,9 @@ def create_commandline_as6(job, conf) -> list[str]:
         if job.rre_cutoff:
             args.extend(['--rre-cutoff', str(job.rre_cutoff)])
 
-    if job.sideload:
-        args.extend(['--sideload', os.path.join(os.sep, 'input', job.sideload)])
+    if job.sideloads:
+        filenames = [os.path.join(os.sep, 'input', s) for s in job.sideloads]
+        args.extend(['--sideload', ",".join(filenames)])
 
     if job.sideload_simple:
         args.extend(['--sideload-simple', job.sideload_simple])
