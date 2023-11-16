@@ -116,6 +116,9 @@ def create_commandline_as7(job, conf) -> list[str]:
     if job.tfbs:
         args.append('--tfbs')
 
+    if job.ncbi_context:
+        args.append('--html-ncbi-context')
+
     return args
 
 
