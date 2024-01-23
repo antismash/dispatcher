@@ -123,7 +123,7 @@ async def run_container(job: Job, db: Redis, app: StandaloneApplication):
         await db.lpush('jobs:completed', job.job_id)
 
         await update_stats(db, job)
-        await send_error_mail(app, job, [], [], [])
+        await send_error_mail(app, job, [], [], [], job.status)
         return
 
     app.logger.debug("Starting container using %s", cmdline)
