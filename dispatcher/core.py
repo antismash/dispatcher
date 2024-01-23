@@ -14,7 +14,7 @@ from redis.asyncio import Redis
 import toml
 
 from .cmdline import create_commandline
-from .errors import InvalidJobType
+from .errors import InvalidJobType, JobDirMissing
 from .mail import send_job_mail, send_error_mail
 from .version import version_sync, git_version
 
@@ -117,6 +117,18 @@ async def run_container(job: Job, db: Redis, app: StandaloneApplication):
         app.logger.debug("Got invalid job type %s", str(err))
         job.state = 'failed'
         job.status = 'failed: Invalid job type'
+        await job.commit()
+
+        await db.lrem('jobs:running', 1, job.job_id)
+        await db.lpush('jobs:completed', job.job_id)
+
+        await update_stats(db, job)
+        await send_error_mail(app, job, [], [], [], job.status)
+        return
+    except JobDirMissing as err:
+        app.logger.debug("Job input directory missing: %s", str(err))
+        job.state = 'failed'
+        job.status = 'failed: Job input directory missing, was it stale?'
         await job.commit()
 
         await db.lrem('jobs:running', 1, job.job_id)
@@ -271,10 +283,14 @@ def create_podman_command(job: Job, conf: "RunConfig", as_cmdline: list[str]) ->
     except KeyError:
         raise InvalidJobType(job.jobtype)
 
+    jobdir = os.path.join(conf.workdir, job.job_id, 'input')   # type: ignore  # yes mypy, conf has a workdir
+    if not os.path.exists(jobdir):
+        raise JobDirMissing(jobdir)
+
     mounts = [
         f"{job_conf['databases']}:/databases:ro",
         f"{conf.workdir}:/data/antismash/upload",  # type: ignore  # yes mypy, conf has a workdir
-        f"{os.path.join(conf.workdir, job.job_id, 'input')}:/input:ro",  # type: ignore  # yes mypy, conf has a workdir
+        f"{jobdir}:/input:ro",
     ]
 
     cmdline = ["podman", "run", "--detach=false"]
