@@ -2,6 +2,7 @@
 import aiosmtplib
 import asyncio
 from email.mime.text import MIMEText
+from email.utils import formatdate
 
 from dispatcher.messages import (
     message_template,
@@ -121,6 +122,7 @@ async def send_job_mail(app, job, warnings, errors):
     message['From'] = mail_conf.sender
     message['To'] = job.email
     message['Subject'] = "Your {c.tool} job {j.job_id} finished.".format(j=job, c=mail_conf)
+    message['Date'] = formatdate()
 
     await _send_mail(app, message)
 
@@ -140,6 +142,7 @@ async def send_error_mail(app, job, warnings, errors, backtrace, status):
     message['From'] = mail_conf.sender
     message['To'] = mail_conf.error
     message['Subject'] = "[{j.jobtype}] {c.tool} job {j.job_id} failed.".format(j=job, c=mail_conf)
+    message['Date'] = formatdate()
 
     await _send_mail(app, message)
 
