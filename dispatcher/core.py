@@ -293,7 +293,7 @@ def create_podman_command(job: Job, conf: "RunConfig", as_cmdline: list[str]) ->
         f"{jobdir}:/input:ro",
     ]
 
-    cmdline = ["podman", "run", "--detach=false"]
+    cmdline = ["podman", "run", "--detach=false", "--cgroup-manager", "cgroupfs"]
     if not conf.keep:  # type: ignore
         cmdline.append("--rm")
 
