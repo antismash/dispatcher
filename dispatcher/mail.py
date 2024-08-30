@@ -162,7 +162,7 @@ async def _send_mail(app, message):
                 await smtp.starttls()
 
             if conf.authenticate:
-                await smtp.login(username=conf.user, password=conf.password)
+                await smtp.login(conf.user, conf.password)
 
             await smtp.send_message(message)
 
